@@ -1,0 +1,26 @@
+{
+  "allow_hosts": [
+    "*.example.com"
+  ],
+  "deny_hosts": [
+    "admin.example.com",
+    "staging-internal.example.com"
+  ],
+  "allow_cidrs": [
+    "203.0.113.0/24"
+  ],
+  "deny_cidrs": [
+    "203.0.113.10/32"
+  ],
+  "allow_schemes": [
+    "http",
+    "https"
+  ],
+  "hard_stop_hosts": [
+    "payments.example.com",
+    "auth.example.com"
+  ],
+  "max_nmap_rate": 30,
+  "max_ffuf_threads": 15,
+  "max_nuclei_rate": 60
+}

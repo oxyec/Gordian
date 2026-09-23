@@ -1,0 +1,2 @@
+{"url":"https://api.example.com","status-code":200,"host":"api.example.com","port":443,"tech":["nginx","graphql"]}
+{"url":"http://legacy.example.com","status-code":200,"host":"legacy.example.com","port":"unknown","webserver":"apache"}

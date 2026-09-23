@@ -1,0 +1,6 @@
+admin
+api
+health
+login
+robots.txt
+status

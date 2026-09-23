@@ -1,0 +1,138 @@
+{
+  "network_name": "Acme Corp (simulated)",
+  "scan_timestamp": "2026-04-17T01:47:00Z",
+  "scanner": "killchain-etl sample-data v0.2",
+  "segments": [
+    {"name": "DMZ",   "cidr": "192.0.2.0/24",  "trust_level": "untrusted"},
+    {"name": "CORP",  "cidr": "198.51.100.0/24", "trust_level": "internal"},
+    {"name": "INFRA", "cidr": "203.0.113.0/25", "trust_level": "privileged"},
+    {"name": "CROWN", "cidr": "203.0.113.128/25", "trust_level": "restricted"}
+  ],
+  "hosts": [
+    {
+      "id": "attacker",
+      "hostname": "external-attacker",
+      "ip_address": "203.0.113.42",
+      "segment": "INTERNET",
+      "os": "kali-linux",
+      "is_attacker_entry": true,
+      "is_crown_jewel": false,
+      "criticality": 0,
+      "services": [],
+      "reachable": [["web-01", 443]]
+    },
+    {
+      "id": "web-01",
+      "hostname": "web-01.acme.example",
+      "ip_address": "192.0.2.10",
+      "segment": "DMZ",
+      "os": "ubuntu-20.04",
+      "is_attacker_entry": false,
+      "is_crown_jewel": false,
+      "criticality": 3,
+      "services": [
+        {"name": "apache", "port": 443, "protocol": "tcp", "version": "2.4.49", "cves": ["CVE-2021-41773"]},
+        {"name": "ssh",    "port": 22,  "protocol": "tcp", "version": "OpenSSH 8.2p1", "cves": []}
+      ],
+      "reachable": [
+        ["fileserver-01", 445],
+        ["dev-ws-01", 445]
+      ]
+    },
+    {
+      "id": "fileserver-01",
+      "hostname": "fileserver-01.acme.example",
+      "ip_address": "198.51.100.20",
+      "segment": "CORP",
+      "os": "ubuntu-22.04",
+      "is_attacker_entry": false,
+      "is_crown_jewel": false,
+      "criticality": 5,
+      "services": [
+        {"name": "samba", "port": 445, "protocol": "tcp", "version": "4.14.5", "cves": ["CVE-2021-44142"]}
+      ],
+      "reachable": [
+        ["dev-ws-01", 445],
+        ["hr-ws-01", 445],
+        ["dc-01", 445]
+      ]
+    },
+    {
+      "id": "dev-ws-01",
+      "hostname": "dev-ws-01.acme.example",
+      "ip_address": "198.51.100.50",
+      "segment": "CORP",
+      "os": "windows-10",
+      "is_attacker_entry": false,
+      "is_crown_jewel": false,
+      "criticality": 4,
+      "services": [
+        {"name": "spoolsv", "port": 445, "protocol": "tcp", "version": "Windows Print Spooler", "cves": ["CVE-2021-34527"]}
+      ],
+      "reachable": [
+        ["dc-01", 445],
+        ["fileserver-01", 445]
+      ]
+    },
+    {
+      "id": "hr-ws-01",
+      "hostname": "hr-ws-01.acme.example",
+      "ip_address": "198.51.100.51",
+      "segment": "CORP",
+      "os": "windows-10",
+      "is_attacker_entry": false,
+      "is_crown_jewel": false,
+      "criticality": 3,
+      "services": [
+        {"name": "smb", "port": 445, "protocol": "tcp", "version": "SMBv3", "cves": []}
+      ],
+      "reachable": [["dc-01", 445]]
+    },
+    {
+      "id": "dc-01",
+      "hostname": "dc-01.acme.example",
+      "ip_address": "203.0.113.10",
+      "segment": "INFRA",
+      "os": "windows-server-2019",
+      "is_attacker_entry": false,
+      "is_crown_jewel": false,
+      "criticality": 9,
+      "services": [
+        {"name": "netlogon", "port": 445, "protocol": "tcp", "version": "Netlogon RPC", "cves": ["CVE-2020-1472"]},
+        {"name": "ldap",     "port": 389, "protocol": "tcp", "version": "Active Directory LDAP", "cves": []}
+      ],
+      "reachable": [
+        ["db-prod-01", 5432],
+        ["backup-01", 873]
+      ]
+    },
+    {
+      "id": "db-prod-01",
+      "hostname": "db-prod-01.acme.example",
+      "ip_address": "203.0.113.138",
+      "segment": "CROWN",
+      "os": "ubuntu-22.04",
+      "is_attacker_entry": false,
+      "is_crown_jewel": true,
+      "criticality": 10,
+      "services": [
+        {"name": "postgresql", "port": 5432, "protocol": "tcp", "version": "13.4", "cves": ["CVE-2022-1552"]}
+      ],
+      "reachable": []
+    },
+    {
+      "id": "backup-01",
+      "hostname": "backup-01.acme.example",
+      "ip_address": "203.0.113.148",
+      "segment": "CROWN",
+      "os": "ubuntu-22.04",
+      "is_attacker_entry": false,
+      "is_crown_jewel": true,
+      "criticality": 10,
+      "services": [
+        {"name": "rsyncd", "port": 873, "protocol": "tcp", "version": "rsync 3.2.7", "cves": ["CVE-2024-12084"]}
+      ],
+      "reachable": []
+    }
+  ]
+}

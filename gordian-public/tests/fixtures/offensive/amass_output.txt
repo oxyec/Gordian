@@ -1,0 +1,2 @@
+subdomain discovered: stage.example.com
+{"name":"cdn.example.com"}

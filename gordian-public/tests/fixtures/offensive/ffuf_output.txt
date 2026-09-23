@@ -1,0 +1,3 @@
+/admin [Status: 200, Size: 220, Words: 12, Lines: 3]
+{"url":"https://app.example.com/.env","status":200,"length":42}
+{"url":"https://app.example.com/api","status":"oops","length":"bad"}

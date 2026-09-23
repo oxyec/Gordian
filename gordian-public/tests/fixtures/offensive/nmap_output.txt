@@ -1,0 +1,4 @@
+Nmap scan report for api.example.com (10.10.10.5)
+443/tcp open https nginx 1.24.0
+8080/tcp open http gunicorn 20.1
+| ssl-enum-ciphers: possible issue CVE-2024-1111

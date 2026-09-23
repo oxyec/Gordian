@@ -1,0 +1,101 @@
+{
+  "feed_version": "poc-0.1",
+  "source": "NVD + ExploitDB enrichment (simulated)",
+  "generated_at": "2026-04-17T01:47:00Z",
+  "cves": [
+    {
+      "cve_id": "CVE-2021-41773",
+      "cvss_v3": 9.8,
+      "severity": "CRITICAL",
+      "description": "Apache HTTP Server 2.4.49 path traversal leading to unauthenticated RCE via mod_cgi.",
+      "exploit_category": "INITIAL_ACCESS",
+      "mitre_tactics": ["TA0001"],
+      "mitre_techniques": ["T1190"],
+      "exploitability": 0.95,
+      "weaponized": true,
+      "epss_score": 0.97,
+      "references": [
+        "https://httpd.apache.org/security/vulnerabilities_24.html",
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-41773"
+      ]
+    },
+    {
+      "cve_id": "CVE-2021-44142",
+      "cvss_v3": 9.9,
+      "severity": "CRITICAL",
+      "description": "Out-of-bounds heap read/write in Samba vfs_fruit module allowing remote code execution as root.",
+      "exploit_category": "LATERAL_MOVEMENT",
+      "mitre_tactics": ["TA0008"],
+      "mitre_techniques": ["T1210"],
+      "exploitability": 0.75,
+      "weaponized": true,
+      "epss_score": 0.64,
+      "references": [
+        "https://www.samba.org/samba/history/security.html",
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-44142"
+      ]
+    },
+    {
+      "cve_id": "CVE-2021-34527",
+      "cvss_v3": 8.8,
+      "severity": "HIGH",
+      "description": "PrintNightmare: Windows Print Spooler remote code execution permitting SYSTEM privileges.",
+      "exploit_category": "PRIVILEGE_ESCALATION",
+      "mitre_tactics": ["TA0004", "TA0008"],
+      "mitre_techniques": ["T1068", "T1021"],
+      "exploitability": 0.90,
+      "weaponized": true,
+      "epss_score": 0.94,
+      "references": [
+        "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-34527"
+      ]
+    },
+    {
+      "cve_id": "CVE-2020-1472",
+      "cvss_v3": 10.0,
+      "severity": "CRITICAL",
+      "description": "Zerologon: Netlogon cryptography bypass enabling Domain Admin takeover in seconds.",
+      "exploit_category": "PRIVILEGE_ESCALATION",
+      "mitre_tactics": ["TA0004", "TA0006"],
+      "mitre_techniques": ["T1068", "T1003"],
+      "exploitability": 0.98,
+      "weaponized": true,
+      "epss_score": 0.97,
+      "references": [
+        "https://www.secura.com/blog/zero-logon",
+        "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2020-1472"
+      ]
+    },
+    {
+      "cve_id": "CVE-2022-1552",
+      "cvss_v3": 8.8,
+      "severity": "HIGH",
+      "description": "PostgreSQL autovacuum/REINDEX privilege escalation allowing arbitrary SQL execution as superuser.",
+      "exploit_category": "PRIVILEGE_ESCALATION",
+      "mitre_tactics": ["TA0004"],
+      "mitre_techniques": ["T1068"],
+      "exploitability": 0.55,
+      "weaponized": false,
+      "epss_score": 0.12,
+      "references": [
+        "https://www.postgresql.org/support/security/CVE-2022-1552/"
+      ]
+    },
+    {
+      "cve_id": "CVE-2024-12084",
+      "cvss_v3": 9.8,
+      "severity": "CRITICAL",
+      "description": "rsync daemon heap buffer overflow in checksum parsing; unauthenticated RCE against exposed rsyncd.",
+      "exploit_category": "LATERAL_MOVEMENT",
+      "mitre_tactics": ["TA0008"],
+      "mitre_techniques": ["T1210"],
+      "exploitability": 0.85,
+      "weaponized": true,
+      "epss_score": 0.71,
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-12084",
+        "https://kb.cert.org/vuls/id/952657"
+      ]
+    }
+  ]
+}

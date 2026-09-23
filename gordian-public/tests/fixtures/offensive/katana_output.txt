@@ -1,0 +1,2 @@
+https://app.example.com/.git/config
+/api/v1/users

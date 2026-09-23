@@ -1,0 +1,2 @@
+{"template-id":"cves/2024/CVE-2024-5555","host":"https://api.example.com","info":{"severity":"critical","name":"Critical test template","description":"Detected CVE-2024-5555 in response"}}
+[high] https://api.example.com/login CVE-2023-9999 reflected in body

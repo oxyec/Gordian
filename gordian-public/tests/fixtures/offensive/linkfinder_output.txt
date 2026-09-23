@@ -1,0 +1,2 @@
+https://app.example.com/assets/main.js
+Found api_key in javascript bundle
