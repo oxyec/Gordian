@@ -31,9 +31,12 @@ _MAX_LINE_BYTES = 64 * 1024
 
 async def _kill_process_tree(proc: asyncio.subprocess.Process) -> None:
     try:
-        if os.name == "posix":
-            # Also kill descendants after the group leader has exited.
-            os.killpg(proc.pid, signal.SIGKILL)
+        pid = getattr(proc, "pid", None)
+        if os.name == "posix" and pid:
+            # Also kill descendants after the group leader has exited. Guard the
+            # pid: a process that never spawned (or a test double) has no live
+            # pid, and killpg(0) would target our own process group.
+            os.killpg(pid, signal.SIGKILL)
         elif proc.returncode is None:
             proc.kill()  # Supervisor exit closes its kill-on-close Windows Job.
     except (ProcessLookupError, OSError):
