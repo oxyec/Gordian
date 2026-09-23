@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ROOT_FILES = {
     ".gitignore", "LICENSE", "README.md", "SECURITY.md", "main.py",
     "requirements.txt", "requirements-dev.txt", "pytest.ini",
+    ".env.example", ".gitleaks.toml",
 }
 FIXTURES = {
     "data/sample_network.json", "data/cve_feed.json", "data/offensive_config.json",

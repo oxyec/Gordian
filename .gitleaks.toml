@@ -1,0 +1,17 @@
+title = "Gordian secret scanning policy"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Redacted security test fixtures with intentionally secret-like placeholders"
+paths = [
+  '''^tests/fixtures/offensive/gitleaks_output\.txt$''',
+]
+
+[[allowlists]]
+description = "Known non-secret placeholder values used in tests and docs"
+regexes = [
+  '''test-only-not-a-secret(?:-)+''',
+  '''Authorization:\s+\*{6}''',
+]

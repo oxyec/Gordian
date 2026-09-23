@@ -3,6 +3,21 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      - name: Install gitleaks
+        run: go install github.com/zricethezav/gitleaks/v8@latest
+      - name: Secret scan (working tree)
+        run: "$(go env GOPATH)/bin/gitleaks dir . --config .gitleaks.toml --redact"
+      - name: Secret scan (git history)
+        run: "$(go env GOPATH)/bin/gitleaks git . --config .gitleaks.toml --redact --log-opts=--all"
   python:
     runs-on: ${{ matrix.os }}
     strategy:
