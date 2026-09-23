@@ -18,7 +18,7 @@ mdurl==0.1.2
 multidict==6.7.1
 propcache==0.4.1
 pydantic==2.13.3
-pydantic-core==2.46.3
+pydantic-core==2.49.0
 pygments==2.20.0
 python-dotenv==1.2.2
 pyyaml==6.0.3
