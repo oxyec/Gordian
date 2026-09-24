@@ -9,3 +9,12 @@ Reports, screenshots, target lists, provider credentials, local configuration, a
 The React dashboard is a demonstration UI. Use the authenticated API/Go TUI for scans. Scope validation checks submitted and discovered targets, but third-party tool behavior, redirects and DNS changes require egress restrictions appropriate to the engagement.
 
 Only the current development branch is maintained. Audit dependencies and use a patched Go toolchain before building a release.
+
+## Secret leak response (required before public release)
+
+1. Scan working tree: `gitleaks dir . --config .gitleaks.toml --redact`.
+2. Scan all history: `gitleaks git . --config .gitleaks.toml --redact --log-opts=--all`.
+3. If a real secret is found: rotate/revoke immediately, then rewrite Git history to remove the secret before publishing.
+4. Re-run both scans and confirm clean results before proceeding.
+
+False positives must be handled with minimal, path- or value-specific allowlist entries in `.gitleaks.toml`; never disable scanning globally.

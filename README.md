@@ -56,6 +56,22 @@ This starts the authenticated API with active tooling disabled. A REST request o
 
 Development tests require `pip install -r requirements-dev.txt`. Runtime dependencies are pinned in `requirements.txt`; re-audit them before each release. Go builds require Go 1.26.6 or newer.
 
+### Public release gate
+
+Before each public release, complete all checks below and treat them as a hard gate:
+
+- [ ] Security baseline files exist and are current: `LICENSE`, `SECURITY.md`, `.env.example`, `.gitleaks.toml`.
+- [ ] Dependency audits pass (`pip_audit`, `npm audit`, `govulncheck`) in CI.
+- [ ] Working tree secret scan passes:
+  - `gitleaks dir . --config .gitleaks.toml --redact`
+- [ ] Full Git history secret scan passes:
+  - `gitleaks git . --config .gitleaks.toml --redact --log-opts=--all`
+- [ ] Reports/data/manual review passes: no customer identifiers, environment-specific hosts/IPs, credentials, or private evidence is present in publishable files.
+
+If any real credential is detected in current files or history, rotate it immediately, revoke old access, and rewrite history before publication. Deleting files alone is insufficient.
+
+False positives must be handled through narrowly scoped rules in `.gitleaks.toml` with justification comments; do not suppress findings globally.
+
 ---
 
 ## 📑 Table of Contents
