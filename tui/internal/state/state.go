@@ -90,38 +90,10 @@ type ScanConfig struct {
 	Target             string `json:"target"`
 	NetworkFile        string `json:"network_file"`
 	CVEFile            string `json:"cve_file"`
-	OutputDir          string `json:"output_dir"`
 	OffensiveMode      string `json:"offensive_mode"`
 	OffensiveSpeed     string `json:"offensive_speed"`
 	OffensiveIntensity string `json:"offensive_intensity"`
 	OffensiveTools     string `json:"offensive_tools"`
-
-	NmapBin      string `json:"nmap_bin"`
-	FfufBin      string `json:"ffuf_bin"`
-	NucleiBin    string `json:"nuclei_bin"`
-	SubfinderBin string `json:"subfinder_bin"`
-	HttpxBin     string `json:"httpx_bin"`
-	KatanaBin    string `json:"katana_bin"`
-	GitleaksBin  string `json:"gitleaks_bin"`
-	GowitnessBin string `json:"gowitness_bin"`
-
-	NmapExtraArgs      string `json:"nmap_extra_args"`
-	FfufExtraArgs      string `json:"ffuf_extra_args"`
-	NucleiExtraArgs    string `json:"nuclei_extra_args"`
-	SubfinderExtraArgs string `json:"subfinder_extra_args"`
-	HttpxExtraArgs     string `json:"httpx_extra_args"`
-	KatanaExtraArgs    string `json:"katana_extra_args"`
-	GitleaksExtraArgs  string `json:"gitleaks_extra_args"`
-	GowitnessExtraArgs string `json:"gowitness_extra_args"`
-
-	NmapCommand      string `json:"nmap_command"`
-	FfufCommand      string `json:"ffuf_command"`
-	NucleiCommand    string `json:"nuclei_command"`
-	SubfinderCommand string `json:"subfinder_command"`
-	HttpxCommand     string `json:"httpx_command"`
-	KatanaCommand    string `json:"katana_command"`
-	GitleaksCommand  string `json:"gitleaks_command"`
-	GowitnessCommand string `json:"gowitness_command"`
 
 	MaxNmapRate      string `json:"max_nmap_rate"`
 	MaxFfufThreads   string `json:"max_ffuf_threads"`
@@ -133,9 +105,6 @@ type ScanConfig struct {
 
 	WordlistProfile string `json:"wordlist_profile"`
 	FfufWordlist    string `json:"ffuf_wordlist"`
-	CVEProfile      string `json:"cve_profile"`
-	CVEAutoDownload string `json:"cve_auto_download"`
-	CVESyncPolicy   string `json:"cve_sync_policy"`
 
 	RunRemediation   string `json:"run_remediation"`
 	TopPatches       string `json:"top_patches"`
@@ -143,7 +112,6 @@ type ScanConfig struct {
 	AssetCVEMinScore string `json:"asset_cve_min_score"`
 	AssetCVEKeepTop  string `json:"asset_cve_keep_top"`
 	BugbountyMode    string `json:"bugbounty_mode"`
-	FullControl      string `json:"full_control"`
 
 	ProfilePath string `json:"profile_path"`
 }
@@ -269,9 +237,6 @@ func NewAppState(apiBase string) *AppState {
 func defaultScanConfig() ScanConfig {
 	return ScanConfig{
 		OffensiveMode:    "auto",
-		CVEProfile:       "local",
-		CVEAutoDownload:  "false",
-		CVESyncPolicy:    "never",
 		RunRemediation:   "true",
 		TopPatches:       "5",
 		AssetAwareCVEs:   "false",

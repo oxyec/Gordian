@@ -127,38 +127,16 @@ func TestConfigEditModeAllowsNumericInput(t *testing.T) {
 	}
 }
 
-func TestConfigMenuNineSelectsProfiles(t *testing.T) {
+func TestConfigMenuSixSelectsProfiles(t *testing.T) {
 	appState := state.NewAppState("http://localhost:8000")
 	config := NewConfigModel(appState.GetScanConfig())
 
-	handled, _ := config.HandleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'9'}}, appState)
+	handled, _ := config.HandleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'6'}}, appState)
 	if !handled {
-		t.Fatal("expected key 9 to be handled by config model")
+		t.Fatal("expected key 6 to be handled by config model")
 	}
 	if config.ActiveMenu != MenuProfiles {
 		t.Fatalf("expected active menu profiles, got %d", config.ActiveMenu)
-	}
-}
-
-func TestConfigToolFilterShowsOnlyEnabledTools(t *testing.T) {
-	appState := state.NewAppState("http://localhost:8000")
-	config := NewConfigModel(appState.GetScanConfig())
-	config.ActiveMenu = MenuToolBin
-
-	handled, _ := config.HandleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'f'}}, appState)
-	if !handled {
-		t.Fatal("expected f to toggle tool filter")
-	}
-	if !config.ShowActiveToolsOnly {
-		t.Fatal("expected active-tool filter to be enabled")
-	}
-
-	out := RenderConfigPanel(appState, &config, 120, 40)
-	if strings.Contains(out, "subfinder bin") {
-		t.Fatal("expected disabled tool field to be hidden when active-tool filter is on")
-	}
-	if !strings.Contains(out, "nmap bin") {
-		t.Fatal("expected enabled tool field to remain visible")
 	}
 }
 
@@ -325,7 +303,7 @@ func TestConfigBooleanSelectorStaysOutOfFreeTextEdit(t *testing.T) {
 	appState := state.NewAppState("http://localhost:8000")
 	config := NewConfigModel(appState.GetScanConfig())
 	config.ActiveMenu = MenuCVEPolicy
-	config.FocusIndex = 1 // cve_auto_download
+	config.FocusIndex = 0 // asset_aware_cves
 
 	handled, _ := config.HandleKey(tea.KeyMsg{Type: tea.KeyEnter}, appState)
 	if !handled {

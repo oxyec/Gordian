@@ -53,20 +53,10 @@ type ScanStartRequest struct {
 	Target             string   `json:"target,omitempty"`
 	NetworkFile        string   `json:"network_file,omitempty"`
 	CVEFile            string   `json:"cve_file,omitempty"`
-	OutputDir          string   `json:"output_dir,omitempty"`
 	OffensiveMode      string   `json:"offensive_mode,omitempty"`
 	OffensiveSpeed     string   `json:"offensive_speed,omitempty"`
 	OffensiveIntensity string   `json:"offensive_intensity,omitempty"`
 	OffensiveTools     []string `json:"offensive_tools,omitempty"`
-
-	CVEProfile      *string `json:"cve_profile,omitempty"`
-	CVEAutoDownload *bool   `json:"cve_auto_download,omitempty"`
-	CVESyncPolicy   *string `json:"cve_sync_policy,omitempty"`
-
-	// Tool Overrides
-	ToolBin       map[string]string   `json:"tool_bin,omitempty"`
-	ToolExtraArgs map[string][]string `json:"tool_extra_args,omitempty"`
-	ToolCommand   map[string][]string `json:"tool_command,omitempty"`
 
 	// Rate limits / budget
 	MaxNmapRate      *int `json:"max_nmap_rate,omitempty"`
@@ -87,7 +77,6 @@ type ScanStartRequest struct {
 	AssetCVEMinScore int   `json:"asset_cve_min_score"`
 	AssetCVEKeepTop  int   `json:"asset_cve_keep_top"`
 	BugbountyMode    *bool `json:"bugbounty_mode,omitempty"`
-	FullControl      *bool `json:"full_control,omitempty"`
 }
 
 type ScanStartResponse struct {

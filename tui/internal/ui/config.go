@@ -20,9 +20,6 @@ type ConfigMenu int
 
 const (
 	MenuTargetMode ConfigMenu = iota + 1
-	MenuToolBin
-	MenuToolArgs
-	MenuToolCommand
 	MenuRateLimits
 	MenuCVEPolicy
 	MenuBudget
@@ -32,9 +29,6 @@ const (
 
 var orderedConfigMenus = []ConfigMenu{
 	MenuTargetMode,
-	MenuToolBin,
-	MenuToolArgs,
-	MenuToolCommand,
 	MenuRateLimits,
 	MenuCVEPolicy,
 	MenuBudget,
@@ -43,27 +37,21 @@ var orderedConfigMenus = []ConfigMenu{
 }
 
 var configMenuTitles = map[ConfigMenu]string{
-	MenuTargetMode:  "Target + Mode",
-	MenuToolBin:     "Tool Binaries",
-	MenuToolArgs:    "Tool Extra Args",
-	MenuToolCommand: "Tool Command Overrides",
-	MenuRateLimits:  "Rate + Wordlists",
-	MenuCVEPolicy:   "CVE Policy",
-	MenuBudget:      "Budget",
-	MenuFlags:       "Flags",
-	MenuProfiles:    "Profiles",
+	MenuTargetMode: "Target + Mode",
+	MenuRateLimits: "Rate + Wordlists",
+	MenuCVEPolicy:  "CVE Policy",
+	MenuBudget:     "Budget",
+	MenuFlags:      "Flags",
+	MenuProfiles:   "Profiles",
 }
 
 var configMenuShortTitles = map[ConfigMenu]string{
-	MenuTargetMode:  "Tgt",
-	MenuToolBin:     "Bin",
-	MenuToolArgs:    "Args",
-	MenuToolCommand: "Cmd",
-	MenuRateLimits:  "Rate",
-	MenuCVEPolicy:   "CVE",
-	MenuBudget:      "Budget",
-	MenuFlags:       "Flags",
-	MenuProfiles:    "Profile",
+	MenuTargetMode: "Tgt",
+	MenuRateLimits: "Rate",
+	MenuCVEPolicy:  "CVE",
+	MenuBudget:     "Budget",
+	MenuFlags:      "Flags",
+	MenuProfiles:   "Profile",
 }
 
 type configField struct {
@@ -80,17 +68,16 @@ type configPreset struct {
 }
 
 type ConfigModel struct {
-	ActiveMenu          ConfigMenu
-	FocusIndex          int
-	ScrollOffset        int
-	Editing             bool
-	ShowActiveToolsOnly bool
-	Inputs              map[ConfigMenu][]textinput.Model
-	Fields              map[ConfigMenu][]configField
-	CustomValues        map[string]string
-	CustomSelected      map[string]bool
-	StatusMessage       string
-	StatusUntil         time.Time
+	ActiveMenu     ConfigMenu
+	FocusIndex     int
+	ScrollOffset   int
+	Editing        bool
+	Inputs         map[ConfigMenu][]textinput.Model
+	Fields         map[ConfigMenu][]configField
+	CustomValues   map[string]string
+	CustomSelected map[string]bool
+	StatusMessage  string
+	StatusUntil    time.Time
 }
 
 func NewConfigModel(cfg state.ScanConfig) ConfigModel {
@@ -173,24 +160,6 @@ func (m *ConfigModel) HandleKey(msg tea.KeyMsg, appState *state.AppState) (bool,
 		return true, nil
 	}
 
-	if isToolMenu(m.ActiveMenu) {
-		switch key {
-		case "f":
-			m.ShowActiveToolsOnly = !m.ShowActiveToolsOnly
-			m.ScrollOffset = 0
-			visible := m.visibleFieldIndexes(appState, m.ActiveMenu)
-			if len(visible) > 0 {
-				m.FocusIndex = visible[0]
-			}
-			if m.ShowActiveToolsOnly {
-				m.setStatus("tool filter: active only")
-			} else {
-				m.setStatus("tool filter: all tools")
-			}
-			return true, nil
-		}
-	}
-
 	if m.ActiveMenu == MenuProfiles && !m.Editing {
 		switch key {
 		case "w":
@@ -235,7 +204,7 @@ func (m *ConfigModel) HandleKey(msg tea.KeyMsg, appState *state.AppState) (bool,
 	}
 
 	fields := m.Fields[m.ActiveMenu]
-	visible := m.visibleFieldIndexes(appState, m.ActiveMenu)
+	visible := m.visibleFieldIndexes(m.ActiveMenu)
 	if len(fields) == 0 {
 		return false, nil
 	}
@@ -471,57 +440,16 @@ func (m *ConfigModel) syncViewport(focusPos int, maxRows int) {
 	}
 }
 
-func (m *ConfigModel) visibleFieldIndexes(appState *state.AppState, menu ConfigMenu) []int {
+func (m *ConfigModel) visibleFieldIndexes(menu ConfigMenu) []int {
 	defs := m.Fields[menu]
 	if len(defs) == 0 {
 		return nil
 	}
-
-	indexes := make([]int, 0, len(defs))
-	if !isToolMenu(menu) || !m.ShowActiveToolsOnly {
-		for i := range defs {
-			indexes = append(indexes, i)
-		}
-		return indexes
-	}
-
-	enabled := enabledToolsSet(appState)
-	for i, def := range defs {
-		tool := toolNameFromFieldKey(def.Key)
-		if tool == "" || enabled[tool] {
-			indexes = append(indexes, i)
-		}
+	indexes := make([]int, len(defs))
+	for i := range defs {
+		indexes[i] = i
 	}
 	return indexes
-}
-
-func isToolMenu(menu ConfigMenu) bool {
-	switch menu {
-	case MenuToolBin, MenuToolArgs, MenuToolCommand:
-		return true
-	default:
-		return false
-	}
-}
-
-func enabledToolsSet(appState *state.AppState) map[string]bool {
-	set := make(map[string]bool, len(appState.Tools))
-	for _, tool := range appState.Tools {
-		if tool.Enabled {
-			set[strings.ToLower(strings.TrimSpace(tool.Name))] = true
-		}
-	}
-	return set
-}
-
-func toolNameFromFieldKey(key string) string {
-	if key == "" {
-		return ""
-	}
-	if i := strings.IndexByte(key, '_'); i > 0 {
-		return strings.ToLower(key[:i])
-	}
-	return ""
 }
 
 func indexOfInt(values []int, target int) int {
@@ -644,20 +572,14 @@ func menuFromKey(key string) ConfigMenu {
 	case "1":
 		return MenuTargetMode
 	case "2":
-		return MenuToolBin
-	case "3":
-		return MenuToolArgs
-	case "4":
-		return MenuToolCommand
-	case "5":
 		return MenuRateLimits
-	case "6":
+	case "3":
 		return MenuCVEPolicy
-	case "7":
+	case "4":
 		return MenuBudget
-	case "8":
+	case "5":
 		return MenuFlags
-	case "9":
+	case "6":
 		return MenuProfiles
 	default:
 		return 0
@@ -674,37 +596,6 @@ func configFieldLayout() map[ConfigMenu][]configField {
 			{Key: "offensive_tools", Label: "offensive_tools", Placeholder: "csv override after choosing custom", Presets: []configPreset{{Label: "enabled-tools", Value: ""}}, AllowCustom: true},
 			{Key: "network_file", Label: "network_file", Placeholder: "type custom topology path", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
 			{Key: "cve_file", Label: "cve_file", Placeholder: "type custom cve feed path", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "output_dir", Label: "output_dir", Placeholder: "type custom output directory", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-		},
-		MenuToolBin: {
-			{Key: "nmap_bin", Label: "nmap bin", Placeholder: "type custom binary path", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "ffuf_bin", Label: "ffuf bin", Placeholder: "type custom binary path", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "nuclei_bin", Label: "nuclei bin", Placeholder: "type custom binary path", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "subfinder_bin", Label: "subfinder bin", Placeholder: "type custom binary path", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "httpx_bin", Label: "httpx bin", Placeholder: "type custom binary path", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "katana_bin", Label: "katana bin", Placeholder: "type custom binary path", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "gitleaks_bin", Label: "gitleaks bin", Placeholder: "type custom binary path", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "gowitness_bin", Label: "gowitness bin", Placeholder: "type custom binary path", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-		},
-		MenuToolArgs: {
-			{Key: "nmap_extra_args", Label: "nmap extra", Placeholder: "type custom args", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "ffuf_extra_args", Label: "ffuf extra", Placeholder: "type custom args", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "nuclei_extra_args", Label: "nuclei extra", Placeholder: "type custom args", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "subfinder_extra_args", Label: "subfinder extra", Placeholder: "type custom args", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "httpx_extra_args", Label: "httpx extra", Placeholder: "type custom args", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "katana_extra_args", Label: "katana extra", Placeholder: "type custom args", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "gitleaks_extra_args", Label: "gitleaks extra", Placeholder: "type custom args", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "gowitness_extra_args", Label: "gowitness extra", Placeholder: "type custom args", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-		},
-		MenuToolCommand: {
-			{Key: "nmap_command", Label: "nmap command", Placeholder: "type custom command template", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "ffuf_command", Label: "ffuf command", Placeholder: "type custom command template", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "nuclei_command", Label: "nuclei command", Placeholder: "type custom command template", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "subfinder_command", Label: "subfinder command", Placeholder: "type custom command template", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "httpx_command", Label: "httpx command", Placeholder: "type custom command template", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "katana_command", Label: "katana command", Placeholder: "type custom command template", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "gitleaks_command", Label: "gitleaks command", Placeholder: "type custom command template", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
-			{Key: "gowitness_command", Label: "gowitness command", Placeholder: "type custom command template", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
 		},
 		MenuRateLimits: {
 			{Key: "max_nmap_rate", Label: "max_nmap_rate", Placeholder: "int"},
@@ -714,9 +605,6 @@ func configFieldLayout() map[ConfigMenu][]configField {
 			{Key: "ffuf_wordlist", Label: "ffuf_wordlist", Placeholder: "type custom wordlist path", Presets: []configPreset{{Label: "auto", Value: ""}}, AllowCustom: true},
 		},
 		MenuCVEPolicy: {
-			{Key: "cve_profile", Label: "cve_profile", Placeholder: "pick a source or custom", Presets: []configPreset{{Label: "local", Value: "local"}, {Label: "cisa_kev", Value: "cisa_kev"}}, AllowCustom: true},
-			{Key: "cve_auto_download", Label: "cve_auto_download", Placeholder: "true | false | blank", Presets: []configPreset{{Label: "true", Value: "true"}, {Label: "false", Value: "false"}, {Label: "blank", Value: ""}}},
-			{Key: "cve_sync_policy", Label: "cve_sync_policy", Placeholder: "pick a policy or custom", Presets: []configPreset{{Label: "always", Value: "always"}, {Label: "if-stale", Value: "if-stale"}, {Label: "never", Value: "never"}}, AllowCustom: true},
 			{Key: "asset_aware_cves", Label: "asset_aware_cves", Placeholder: "true | false", Presets: []configPreset{{Label: "true", Value: "true"}, {Label: "false", Value: "false"}}},
 			{Key: "asset_cve_min_score", Label: "asset_cve_min_score", Placeholder: "int"},
 			{Key: "asset_cve_keep_top", Label: "asset_cve_keep_top", Placeholder: "int"},
@@ -731,7 +619,6 @@ func configFieldLayout() map[ConfigMenu][]configField {
 		MenuFlags: {
 			{Key: "run_remediation", Label: "run_remediation", Placeholder: "true | false", Presets: []configPreset{{Label: "true", Value: "true"}, {Label: "false", Value: "false"}}},
 			{Key: "bugbounty_mode", Label: "bugbounty_mode", Placeholder: "true | false | blank", Presets: []configPreset{{Label: "true", Value: "true"}, {Label: "false", Value: "false"}, {Label: "blank", Value: ""}}},
-			{Key: "full_control", Label: "full_control", Placeholder: "true | false | blank", Presets: []configPreset{{Label: "true", Value: "true"}, {Label: "false", Value: "false"}, {Label: "blank", Value: ""}}},
 		},
 		MenuProfiles: {
 			{Key: "profile_path", Label: "profile_path", Placeholder: "gordian_profile.json"},
@@ -747,8 +634,6 @@ func getScanConfigValue(cfg state.ScanConfig, key string) string {
 		return cfg.NetworkFile
 	case "cve_file":
 		return cfg.CVEFile
-	case "output_dir":
-		return cfg.OutputDir
 	case "offensive_mode":
 		return cfg.OffensiveMode
 	case "offensive_speed":
@@ -757,54 +642,6 @@ func getScanConfigValue(cfg state.ScanConfig, key string) string {
 		return cfg.OffensiveIntensity
 	case "offensive_tools":
 		return cfg.OffensiveTools
-	case "nmap_bin":
-		return cfg.NmapBin
-	case "ffuf_bin":
-		return cfg.FfufBin
-	case "nuclei_bin":
-		return cfg.NucleiBin
-	case "subfinder_bin":
-		return cfg.SubfinderBin
-	case "httpx_bin":
-		return cfg.HttpxBin
-	case "katana_bin":
-		return cfg.KatanaBin
-	case "gitleaks_bin":
-		return cfg.GitleaksBin
-	case "gowitness_bin":
-		return cfg.GowitnessBin
-	case "nmap_extra_args":
-		return cfg.NmapExtraArgs
-	case "ffuf_extra_args":
-		return cfg.FfufExtraArgs
-	case "nuclei_extra_args":
-		return cfg.NucleiExtraArgs
-	case "subfinder_extra_args":
-		return cfg.SubfinderExtraArgs
-	case "httpx_extra_args":
-		return cfg.HttpxExtraArgs
-	case "katana_extra_args":
-		return cfg.KatanaExtraArgs
-	case "gitleaks_extra_args":
-		return cfg.GitleaksExtraArgs
-	case "gowitness_extra_args":
-		return cfg.GowitnessExtraArgs
-	case "nmap_command":
-		return cfg.NmapCommand
-	case "ffuf_command":
-		return cfg.FfufCommand
-	case "nuclei_command":
-		return cfg.NucleiCommand
-	case "subfinder_command":
-		return cfg.SubfinderCommand
-	case "httpx_command":
-		return cfg.HttpxCommand
-	case "katana_command":
-		return cfg.KatanaCommand
-	case "gitleaks_command":
-		return cfg.GitleaksCommand
-	case "gowitness_command":
-		return cfg.GowitnessCommand
 	case "max_nmap_rate":
 		return cfg.MaxNmapRate
 	case "max_ffuf_threads":
@@ -823,12 +660,6 @@ func getScanConfigValue(cfg state.ScanConfig, key string) string {
 		return cfg.WordlistProfile
 	case "ffuf_wordlist":
 		return cfg.FfufWordlist
-	case "cve_profile":
-		return cfg.CVEProfile
-	case "cve_auto_download":
-		return cfg.CVEAutoDownload
-	case "cve_sync_policy":
-		return cfg.CVESyncPolicy
 	case "run_remediation":
 		return cfg.RunRemediation
 	case "top_patches":
@@ -841,8 +672,6 @@ func getScanConfigValue(cfg state.ScanConfig, key string) string {
 		return cfg.AssetCVEKeepTop
 	case "bugbounty_mode":
 		return cfg.BugbountyMode
-	case "full_control":
-		return cfg.FullControl
 	case "profile_path":
 		return cfg.ProfilePath
 	default:
@@ -859,8 +688,6 @@ func setScanConfigValue(cfg *state.ScanConfig, key, value string) {
 		cfg.NetworkFile = trimmed
 	case "cve_file":
 		cfg.CVEFile = trimmed
-	case "output_dir":
-		cfg.OutputDir = trimmed
 	case "offensive_mode":
 		cfg.OffensiveMode = trimmed
 	case "offensive_speed":
@@ -869,54 +696,6 @@ func setScanConfigValue(cfg *state.ScanConfig, key, value string) {
 		cfg.OffensiveIntensity = trimmed
 	case "offensive_tools":
 		cfg.OffensiveTools = trimmed
-	case "nmap_bin":
-		cfg.NmapBin = trimmed
-	case "ffuf_bin":
-		cfg.FfufBin = trimmed
-	case "nuclei_bin":
-		cfg.NucleiBin = trimmed
-	case "subfinder_bin":
-		cfg.SubfinderBin = trimmed
-	case "httpx_bin":
-		cfg.HttpxBin = trimmed
-	case "katana_bin":
-		cfg.KatanaBin = trimmed
-	case "gitleaks_bin":
-		cfg.GitleaksBin = trimmed
-	case "gowitness_bin":
-		cfg.GowitnessBin = trimmed
-	case "nmap_extra_args":
-		cfg.NmapExtraArgs = value
-	case "ffuf_extra_args":
-		cfg.FfufExtraArgs = value
-	case "nuclei_extra_args":
-		cfg.NucleiExtraArgs = value
-	case "subfinder_extra_args":
-		cfg.SubfinderExtraArgs = value
-	case "httpx_extra_args":
-		cfg.HttpxExtraArgs = value
-	case "katana_extra_args":
-		cfg.KatanaExtraArgs = value
-	case "gitleaks_extra_args":
-		cfg.GitleaksExtraArgs = value
-	case "gowitness_extra_args":
-		cfg.GowitnessExtraArgs = value
-	case "nmap_command":
-		cfg.NmapCommand = value
-	case "ffuf_command":
-		cfg.FfufCommand = value
-	case "nuclei_command":
-		cfg.NucleiCommand = value
-	case "subfinder_command":
-		cfg.SubfinderCommand = value
-	case "httpx_command":
-		cfg.HttpxCommand = value
-	case "katana_command":
-		cfg.KatanaCommand = value
-	case "gitleaks_command":
-		cfg.GitleaksCommand = value
-	case "gowitness_command":
-		cfg.GowitnessCommand = value
 	case "max_nmap_rate":
 		cfg.MaxNmapRate = trimmed
 	case "max_ffuf_threads":
@@ -935,12 +714,6 @@ func setScanConfigValue(cfg *state.ScanConfig, key, value string) {
 		cfg.WordlistProfile = trimmed
 	case "ffuf_wordlist":
 		cfg.FfufWordlist = trimmed
-	case "cve_profile":
-		cfg.CVEProfile = trimmed
-	case "cve_auto_download":
-		cfg.CVEAutoDownload = trimmed
-	case "cve_sync_policy":
-		cfg.CVESyncPolicy = trimmed
 	case "run_remediation":
 		cfg.RunRemediation = trimmed
 	case "top_patches":
@@ -953,8 +726,6 @@ func setScanConfigValue(cfg *state.ScanConfig, key, value string) {
 		cfg.AssetCVEKeepTop = trimmed
 	case "bugbounty_mode":
 		cfg.BugbountyMode = trimmed
-	case "full_control":
-		cfg.FullControl = trimmed
 	case "profile_path":
 		cfg.ProfilePath = trimmed
 	}
@@ -1008,12 +779,6 @@ func configMenuIcon(menu ConfigMenu) string {
 	switch menu {
 	case MenuTargetMode:
 		return "◎"
-	case MenuToolBin:
-		return "⌘"
-	case MenuToolArgs:
-		return "≈"
-	case MenuToolCommand:
-		return "⚡"
 	case MenuRateLimits:
 		return "⇆"
 	case MenuCVEPolicy:
@@ -1045,20 +810,14 @@ func configStatusStyle(message string) lipgloss.Style {
 
 func renderConfigHints(menu ConfigMenu, width int) string {
 	if width < 56 {
-		if isToolMenu(menu) {
-			return DimStyle.Render("  1-9 tabs  enter/custom  <- -> choose  f filter")
-		}
-		return DimStyle.Render("  1-9 tabs  enter/custom  <- -> choose")
+		return DimStyle.Render("  1-6 tabs  enter/custom  <- -> choose")
 	}
 
 	parts := []string{
-		fmt.Sprintf("%s tabs", KeyStyle.Render("1-9")),
+		fmt.Sprintf("%s tabs", KeyStyle.Render("1-6")),
 		fmt.Sprintf("%s select", KeyStyle.Render("↑↓")),
 		fmt.Sprintf("%s choose", KeyStyle.Render("←→")),
 		fmt.Sprintf("%s custom", KeyStyle.Render("enter")),
-	}
-	if isToolMenu(menu) {
-		parts = append(parts, fmt.Sprintf("%s filter", KeyStyle.Render("f")))
 	}
 
 	return "  " + strings.Join(parts, "  ")
@@ -1086,7 +845,7 @@ func RenderConfigPanel(appState *state.AppState, config *ConfigModel, width, hei
 	}
 
 	defs := config.Fields[config.ActiveMenu]
-	visible := config.visibleFieldIndexes(appState, config.ActiveMenu)
+	visible := config.visibleFieldIndexes(config.ActiveMenu)
 	inputs := config.Inputs[config.ActiveMenu]
 
 	headerBadge := DimStyle.Render(fmt.Sprintf("  [%d/%d]", len(visible), len(defs)))
@@ -1102,22 +861,10 @@ func RenderConfigPanel(appState *state.AppState, config *ConfigModel, width, hei
 	b.WriteString(renderConfigSectionLine("FIELDS", w))
 	b.WriteString("\n")
 
-	if isToolMenu(config.ActiveMenu) {
-		filterLabel := DimStyle.Render("ALL")
-		if config.ShowActiveToolsOnly {
-			filterLabel = StatusRunning.Render("ACTIVE")
-		}
-		b.WriteString(fmt.Sprintf("  filter: %s tools", filterLabel))
-		b.WriteString("\n")
-	}
-
 	if len(defs) > 0 && len(visible) > 0 {
 		fieldRows := h - 13
 		if config.ActiveMenu == MenuProfiles {
 			fieldRows -= 2
-		}
-		if isToolMenu(config.ActiveMenu) {
-			fieldRows--
 		}
 		if fieldRows < 1 {
 			fieldRows = 1
@@ -1193,10 +940,6 @@ func RenderConfigPanel(appState *state.AppState, config *ConfigModel, width, hei
 		b.WriteString("\n")
 		b.WriteString(StatusWarning.Render("  no visible fields"))
 		b.WriteString("\n")
-		if isToolMenu(config.ActiveMenu) && config.ShowActiveToolsOnly {
-			b.WriteString(DimStyle.Render("  enable tools in toolbox or press f"))
-			b.WriteString("\n")
-		}
 	}
 
 	if config.ActiveMenu == MenuProfiles {

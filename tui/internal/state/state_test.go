@@ -222,8 +222,8 @@ func TestSaveAndLoadProfileRoundTrip(t *testing.T) {
 		t.Errorf("LoadProfile did not restore values: %+v", got)
 	}
 	// Untouched fields should keep their default.
-	if got.CVEProfile != "local" {
-		t.Errorf("default CVEProfile lost after round-trip: %q", got.CVEProfile)
+	if got.TopPatches != "5" {
+		t.Errorf("default TopPatches lost after round-trip: %q", got.TopPatches)
 	}
 }
 

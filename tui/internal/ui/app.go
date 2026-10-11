@@ -24,7 +24,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -895,12 +894,10 @@ func (m AppModel) startScan() tea.Cmd {
 		b.withString(&b.req.Target, cfg.Target).
 			withString(&b.req.NetworkFile, cfg.NetworkFile).
 			withString(&b.req.CVEFile, cfg.CVEFile).
-			withString(&b.req.OutputDir, cfg.OutputDir).
 			withString(&b.req.OffensiveMode, cfg.OffensiveMode).
 			withString(&b.req.OffensiveSpeed, cfg.OffensiveSpeed).
 			withString(&b.req.OffensiveIntensity, cfg.OffensiveIntensity).
-			withTools(cfg, m.state.Tools).
-			withToolOverrides(cfg)
+			withTools(cfg, m.state.Tools)
 
 		b.withOptionalInt(cfg.MaxNmapRate, "max_nmap_rate", func(v *int) { b.req.MaxNmapRate = v }).
 			withOptionalInt(cfg.MaxFfufThreads, "max_ffuf_threads", func(v *int) { b.req.MaxFfufThreads = v }).
@@ -913,18 +910,10 @@ func (m AppModel) startScan() tea.Cmd {
 			withOptionalInt(cfg.AssetCVEMinScore, "asset_cve_min_score", func(v *int) { b.req.AssetCVEMinScore = *v }).
 			withOptionalInt(cfg.AssetCVEKeepTop, "asset_cve_keep_top", func(v *int) { b.req.AssetCVEKeepTop = *v })
 
-		b.withOptionalBool(cfg.CVEAutoDownload, "cve_auto_download", func(v *bool) { b.req.CVEAutoDownload = v }).
-			withOptionalBool(cfg.RunRemediation, "run_remediation", func(v *bool) { b.req.RunRemediation = *v }).
+		b.withOptionalBool(cfg.RunRemediation, "run_remediation", func(v *bool) { b.req.RunRemediation = *v }).
 			withOptionalBool(cfg.AssetAwareCVEs, "asset_aware_cves", func(v *bool) { b.req.AssetAwareCVEs = *v }).
-			withOptionalBool(cfg.BugbountyMode, "bugbounty_mode", func(v *bool) { b.req.BugbountyMode = v }).
-			withOptionalBool(cfg.FullControl, "full_control", func(v *bool) { b.req.FullControl = v })
+			withOptionalBool(cfg.BugbountyMode, "bugbounty_mode", func(v *bool) { b.req.BugbountyMode = v })
 
-		if v := optionalStringPtr(cfg.CVEProfile); v != nil {
-			b.req.CVEProfile = v
-		}
-		if v := optionalStringPtr(cfg.CVESyncPolicy); v != nil {
-			b.req.CVESyncPolicy = v
-		}
 		if v := optionalStringPtr(cfg.WordlistProfile); v != nil {
 			b.req.WordlistProfile = v
 		}
@@ -1093,10 +1082,10 @@ func (m AppModel) loadProfile() tea.Cmd {
 }
 
 func (m AppModel) saveReport() tea.Cmd {
-	cfg := m.state.GetScanConfig()
-	outDir := cfg.OutputDir
-	if outDir == "" {
-		outDir = "reports"
+	// The server writes each scan's reports to reports/<scan-id>/.
+	outDir := "reports"
+	if id := filepath.Base(m.state.CurrentScan.ScanID); id != "." && id != string(filepath.Separator) {
+		outDir = filepath.Join(outDir, id)
 	}
 	return func() tea.Msg {
 		abs, err := filepath.Abs(outDir)
@@ -1159,124 +1148,6 @@ func parseCSVList(raw string) []string {
 		out = append(out, strings.ToLower(v))
 	}
 	return out
-}
-
-func splitCommandLine(raw string) ([]string, error) {
-	text := strings.TrimSpace(raw)
-	if text == "" {
-		return nil, nil
-	}
-
-	args := []string{}
-	var current strings.Builder
-	var quote rune
-	escaped := false
-
-	for _, r := range text {
-		switch {
-		case escaped:
-			current.WriteRune(r)
-			escaped = false
-		case r == '\\':
-			escaped = true
-		case quote != 0:
-			if r == quote {
-				quote = 0
-			} else {
-				current.WriteRune(r)
-			}
-		case r == '"' || r == '\'':
-			quote = r
-		case unicode.IsSpace(r):
-			if current.Len() > 0 {
-				args = append(args, current.String())
-				current.Reset()
-			}
-		default:
-			current.WriteRune(r)
-		}
-	}
-
-	if escaped {
-		current.WriteRune('\\')
-	}
-	if quote != 0 {
-		return nil, fmt.Errorf("unterminated quote")
-	}
-	if current.Len() > 0 {
-		args = append(args, current.String())
-	}
-	return args, nil
-}
-
-func buildToolBinMap(cfg state.ScanConfig) map[string]string {
-	bins := map[string]string{}
-	for tool, value := range map[string]string{
-		"nmap":      cfg.NmapBin,
-		"ffuf":      cfg.FfufBin,
-		"nuclei":    cfg.NucleiBin,
-		"subfinder": cfg.SubfinderBin,
-		"httpx":     cfg.HttpxBin,
-		"katana":    cfg.KatanaBin,
-		"gitleaks":  cfg.GitleaksBin,
-		"gowitness": cfg.GowitnessBin,
-	} {
-		trimmed := strings.TrimSpace(value)
-		if trimmed != "" {
-			bins[tool] = trimmed
-		}
-	}
-	if len(bins) == 0 {
-		return nil
-	}
-	return bins
-}
-
-func buildToolArgMap(cfg state.ScanConfig, command bool) (map[string][]string, error) {
-	values := map[string]string{}
-	if command {
-		values = map[string]string{
-			"nmap":      cfg.NmapCommand,
-			"ffuf":      cfg.FfufCommand,
-			"nuclei":    cfg.NucleiCommand,
-			"subfinder": cfg.SubfinderCommand,
-			"httpx":     cfg.HttpxCommand,
-			"katana":    cfg.KatanaCommand,
-			"gitleaks":  cfg.GitleaksCommand,
-			"gowitness": cfg.GowitnessCommand,
-		}
-	} else {
-		values = map[string]string{
-			"nmap":      cfg.NmapExtraArgs,
-			"ffuf":      cfg.FfufExtraArgs,
-			"nuclei":    cfg.NucleiExtraArgs,
-			"subfinder": cfg.SubfinderExtraArgs,
-			"httpx":     cfg.HttpxExtraArgs,
-			"katana":    cfg.KatanaExtraArgs,
-			"gitleaks":  cfg.GitleaksExtraArgs,
-			"gowitness": cfg.GowitnessExtraArgs,
-		}
-	}
-
-	result := map[string][]string{}
-	for tool, raw := range values {
-		tokens, err := splitCommandLine(raw)
-		if err != nil {
-			fieldName := tool + " extra args"
-			if command {
-				fieldName = tool + " command"
-			}
-			return nil, fmt.Errorf("invalid %s: %w", fieldName, err)
-		}
-		if len(tokens) > 0 {
-			result[tool] = tokens
-		}
-	}
-
-	if len(result) == 0 {
-		return nil, nil
-	}
-	return result, nil
 }
 
 func (m AppModel) fetchGraph() tea.Cmd {
