@@ -54,7 +54,7 @@ python main.py --headless --offensive-disable
 
 This starts the authenticated API with active tooling disabled. A REST request or the Go TUI starts analysis. For an authorized live engagement, configure `--scope-file` and omit `--offensive-disable`.
 
-Development tests require `pip install -r requirements-dev.txt`. Runtime dependencies are pinned in `requirements.txt`; re-audit them before each release. Go builds require Go 1.26.6 or newer.
+Development tests require `pip install -r requirements-dev.txt`. Runtime dependencies are pinned in `requirements.txt`; re-audit them before each release. Go builds require Go 1.26.9 or newer.
 
 ### Public release gate
 
@@ -180,7 +180,7 @@ flowchart LR
 
 ## 🚀 Installation & Requirements
 
-**Requirements:** Python 3.11+ (`pip install -r requirements.txt`). Go 1.26.6+ for the TUI.
+**Requirements:** Python 3.11+ (`pip install -r requirements.txt`). Go 1.26.9+ for the TUI.
 
 Clone the repository and run the tests to ensure everything is working:
 
