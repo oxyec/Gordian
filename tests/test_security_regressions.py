@@ -174,3 +174,33 @@ async def test_cancel_and_timeout_kill_descendants(tmp_path, cancel):
         assert results[0].timed_out
     await asyncio.sleep(2.2)
     assert not marker.exists(), "descendant survived cancellation/timeout"
+
+
+@pytest.mark.parametrize("server_mode, requested, expected", [
+    (True, False, True),   # clients cannot opt out of a server-enforced bug bounty mode
+    (True, None, True),
+    (False, True, True),   # clients may still opt in
+    (False, None, False),
+])
+def test_bugbounty_mode_is_a_server_floor(tmp_path, server_mode, requested, expected):
+    import json
+    from pathlib import Path
+
+    from src.offensive import load_offensive_config, merge_cli_overrides
+
+    root = Path(__file__).resolve().parent.parent
+    raw = json.loads((root / "data" / "offensive_config.json").read_text(encoding="utf-8"))
+    raw["bugbounty_mode"] = server_mode
+    cfg_path = tmp_path / "offensive_config.json"
+    cfg_path.write_text(json.dumps(raw), encoding="utf-8")
+
+    manager = ScanManager(default_args=SimpleNamespace(offensive_config=cfg_path))
+    config = manager._build_offensive_config(
+        request=ScanStartRequest(bugbounty_mode=requested),
+        args=manager.default_args,
+        root=root,
+        load_offensive_config=load_offensive_config,
+        merge_cli_overrides=merge_cli_overrides,
+    )
+
+    assert config.bugbounty_mode is expected

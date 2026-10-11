@@ -2,7 +2,7 @@
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Dependencies](https://img.shields.io/badge/dependencies-aiohttp-informational.svg)]()
+[![Runtime](https://img.shields.io/badge/runtime-FastAPI%20%7C%20uvicorn%20%7C%20rich-informational.svg)](requirements.txt)
 
 ```text
          /\
@@ -42,7 +42,7 @@ Use Gordian's offensive hub only on systems you own or have explicit written aut
 - Set `GORDIAN_API_KEY` to the same randomly generated secret of at least 32 characters in the backend and TUI environments. Every API data/control route and event socket requires authentication. Keep the service on loopback; remote access requires a trusted TLS reverse proxy and restricted network access.
 - Live API scans require a server-owned `--scope-file`. An empty allowlist denies all targets. Whole CIDRs, deny overlaps, discovered follow-up targets and resolved addresses are checked. Scanner redirects, DNS changes and tool-internal discovery still require OS/network egress isolation; scope checks are not a sandbox.
 - API clients cannot select executables, arbitrary flags, command templates, interactive full-control mode, or unrestricted filesystem paths. Configure installed tools on the server. Core Python command overrides are trusted operator code with the privileges of the Gordian process.
-- API datasets must be JSON files under `data/`; request wordlists must be under `data/wordlists/`. Per-scan reports go under `reports/<scan-id>/`. Remote CVE syncing is not supported by this API version; use prepared local feeds.
+- API datasets must be JSON files under `data/`; request wordlists must be under `data/wordlists/`. Per-scan reports go under `reports/<scan-id>/`. The API does not sync remote CVE feeds; use prepared local feeds, or sync with `--once --cve-profile` and point the server at the cached file.
 - Raw command arguments and raw tool lines are withheld from public event/report serialization. Redaction is best effort for interpreted findings; treat every report as private evidence.
 
 Generate a local key in PowerShell before starting the backend (then provide the same key to the TUI process without committing it):
@@ -54,7 +54,7 @@ python main.py --headless --offensive-disable
 
 This starts the authenticated API with active tooling disabled. A REST request or the Go TUI starts analysis. For an authorized live engagement, configure `--scope-file` and omit `--offensive-disable`.
 
-Development tests require `pip install -r requirements-dev.txt`. Runtime dependencies are pinned in `requirements.txt`; re-audit them before each release. Go builds require Go 1.26.6 or newer.
+Development tests require `pip install -r requirements-dev.txt`. Runtime dependencies are pinned in `requirements.txt`; re-audit them before each release. Go builds require Go 1.26.9 or newer.
 
 ### Public release gate
 
@@ -96,11 +96,11 @@ I kept reading about attack-path and attack-graph tooling and wanted to work thr
 
 ## ✨ Key Features
 
-- **Lean Runtime Dependencies:** Python 3.11+ core with optional dashboard streaming powered by `aiohttp`.
+- **Small core:** The graph engine (`src/transformers.py`, `src/scoring.py`, `src/remediation.py`) is plain Python with no graph library. The server adds FastAPI, uvicorn and rich (pinned in `requirements.txt`).
 - **Dijkstra-based Pathfinding:** Finds the most probable/cheapest attack paths, not just the ones with the fewest hops.
 - **Smart Scoring:** Blends CVSS, EPSS, weaponization status, and target criticality into a composite risk score (0-100).
 - **Patch Simulation:** Identifies "chokepoint" vulnerabilities that, when patched, break multiple kill chains—often surfacing lower-CVSS bugs that are critical for lateral movement.
-- **CI/CD Ready:** Can be used as a gate in CI pipelines to fail builds if unpatched kill chains exist.
+- **CI gate:** `python main.py --once --fail-on-findings` exits with code 3 if any kill chain exists.
 - **Offensive Integration Hub (Optional):** Async orchestration of Nmap/ffuf/Nuclei plus optional recon adapters (Subfinder, Amass, BBOT, Katana, HTTPX, SecretFinder, LinkFinder, Gitleaks, Aquatone, Gowitness) with live output parsing, graph injection, and plain-language narratives.
 
 ## ⚙️ How it Works (The Pipeline)
@@ -114,11 +114,13 @@ The internal process:
 2. **Transform** — Build a directed weighted graph. An edge `A -> B` exists only if `A` can reach `B` on a specific port, `B` has a service listening on that port, and that service exposes a CVE.
 3. **Pathfind** — Run Dijkstra's algorithm over the exploit cost, from each attacker entry point to each crown jewel.
 4. **Score** — Generate a 0-100 composite risk score per chain, applying hop penalties and factoring in target value.
-5. **Remediate** — Simulate patching each CVE in a chain (drop it, rebuild graph, re-run pathfinder) and measure the aggregate risk reduction to rank patches.
-6. **Load** — Write JSON and Markdown reports, and pretty-print a summary to the console.
+5. **Remediate** — Simulate patching each CVE in a chain (hide its edges in a filtered view of the graph, re-run the pathfinder) and measure the aggregate risk reduction to rank patches.
+6. **Load** — Write JSON and Markdown reports, and pretty-print a summary to the console (`--once` without `--quiet`).
+
+The CPU-bound stages (graph build, pathfinding, patch simulation) run in worker threads, so the API keeps serving REST and WebSocket traffic while a scan is in progress.
 
 Optional runtime extension:
-7. **Offensive Integration Hub** — Build safe tool commands from JSON/CLI config, run tools concurrently via `asyncio.create_subprocess_exec`, parse output line-by-line, inject new graph edges/nodes, and stream live events for dashboards.
+7. **Offensive Integration Hub** (API scans only) — Build tool commands from server-owned config, run tools concurrently via `asyncio.create_subprocess_exec`, parse output line-by-line, inject new graph edges/nodes, and stream live events for dashboards.
 
 ## 🏛 Architecture
 
@@ -141,7 +143,7 @@ flowchart LR
     end
     subgraph Frontends
         TUI["Go TUI<br/>(Bubbletea)"]
-        WEB["Web Dashboard<br/>(planned)"]
+        WEB["React dashboard<br/>(demo preview, synthetic data)"]
     end
 
     N --> ETL
@@ -154,7 +156,6 @@ flowchart LR
     ETL --> API
     API <--> STORE
     API <-->|REST + WebSocket| TUI
-    API <-.->|REST + WebSocket| WEB
 ```
 
 **Component map:**
@@ -173,13 +174,13 @@ flowchart LR
 **Runtime entry points:**
 - `python main.py` — starts the FastAPI server (default loopback bind on `127.0.0.1:8000`). Start the Go TUI separately with `go run ./cmd/gordian` from `tui/`.
 - `python main.py --headless` — backend only, no boot animation.
+- `python main.py --once` — one-shot analysis without the server; see [Usage](#-usage).
 - `GORDIAN_API_KEY=…` — mandatory random secret of at least 32 characters; used for REST and event-socket authentication.
 - `GORDIAN_CORS_ORIGINS=https://x,https://y` — override loopback-only CORS default.
 
 ## 🚀 Installation & Requirements
 
-**Requirements:** Python 3.11+
-*Optional dashboard mode requires `aiohttp`.*
+**Requirements:** Python 3.11+ (`pip install -r requirements.txt`). Go 1.26.9+ for the TUI.
 
 Clone the repository and run the tests to ensure everything is working:
 
@@ -194,233 +195,98 @@ python -m pytest -v
 
 ## 💻 Usage
 
-`main.py` configures and starts the API; it does not launch a one-shot scan. Start scans through the authenticated Go TUI or `POST /api/v1/scan/start`. The CLI examples below describe backend configuration. Arbitrary tool command/argument overrides and remote CVE sync settings are not supported by the hardened API; legacy advanced controls may return a validation error. Use local feeds and server-owned scope/tool configuration.
+`main.py` has two modes. `python main.py --help` lists every flag, grouped by mode.
 
-Run the CLI using the `main.py` entry point. It defaults to using the bundled sample data.
+### 1. One-shot analysis (`--once`)
+
+Runs the core pipeline once on local JSON inputs, writes `attack_paths.json` and `attack_paths.md`, prints a summary and exits. It does not start a server, does not need `GORDIAN_API_KEY` and never runs offensive tools.
 
 ```bash
-# Full run on bundled sample data
-python main.py
+# Bundled sample data
+python main.py --once
 
-# CI gate: Exit with status code 2 if any kill chain is found
-python main.py --fail-on-findings
+# Your own data
+python main.py --once --network /path/to/network.json --cves /path/to/cves.json --out /path/to/reports
 
-# Skip patch-priority analysis (faster on large graphs)
-python main.py --no-remediation
+# Skip patch simulation, or change how many patches are ranked
+python main.py --once --no-remediation
+python main.py --once --top-patches 10
 
-# Just write reports, suppress console output
-python main.py --quiet
+# Drop CVEs unrelated to the hosts/services in the topology
+python main.py --once --asset-aware-cves --asset-cve-min-score 2 --asset-cve-keep-top 120
 
-# Point to your own custom data files
-python main.py --network /path/to/network.json --cves /path/to/cves.json --out /path/to/reports
-
-# Show available CVE feed profiles
-python main.py --list-cve-profiles
-
-# Auto-sync latest CVEs from a selected source profile
-python main.py --cve-profile nvd_recent
-
-# Merge latest NVD + CISA KEV into one dynamic feed
-python main.py --cve-profile all_latest --cve-max-items 2500
-
-# Pull recent GitHub advisories (GHSA) normalized into CVE rows
-python main.py --cve-profile ghsa_recent --cve-max-items 1500
-
-# Extended merge: NVD + CISA KEV + GHSA with optional OSV enrichment
-python main.py --cve-profile all_plus --cve-max-items 3000 --cve-osv-lookup-limit 120
-
-# Multi-source merge priority (highest first): GHSA > CISA > NVD > OSV
-python main.py --cve-profile all_plus --cve-source-priority ghsa_recent,cisa_kev,nvd_recent,osv_enriched
-
-# Remove selected sources from merged profiles (example: disable GHSA + OSV)
-python main.py --cve-profile all_plus --cve-disable-sources ghsa_recent,osv_enriched
-
-# Refresh policy: only download when cache is stale (>12h)
-python main.py --cve-profile all_latest --cve-sync-policy if-stale --cve-stale-hours 12
-
-# Add schedule cadence on top of sync policy (daily/weekly/off)
-python main.py --cve-profile all_plus --cve-sync-policy if-stale --cve-sync-schedule daily
-
-# Use cached dynamic feeds only (no network)
-python main.py --cve-profile cisa_kev --no-cve-auto-download
-
-# Enable live event stream for dashboards/log pipelines
-python main.py --live-log
-
-# Terminal startup intro (README ASCII art + Rich animation)
-python main.py --offensive-target https://app.example.com
-
-# Interactive terminal app (menu-driven mode)
-python main.py --terminal-app
-
-# Force non-interactive one-shot execution
-python main.py --no-terminal-app --offensive-target https://app.example.com
-
-# Tune or disable terminal intro animation for automation/CI
-python main.py --offensive-target https://app.example.com --intro-speed 0.02
-python main.py --offensive-target https://app.example.com --no-intro
-
-# Start Dashboard API + WebSocket server (health/events/metrics/ws)
-python main.py --dashboard-enable --dashboard-host 127.0.0.1 --dashboard-port 8765
-
-# Constrain offensive runtime by command/finding/target budgets
-python main.py \
-   --offensive-target https://app.example.com \
-   --max-total-commands 25 \
-   --max-total-targets 40 \
-   --max-findings 200 \
-   --max-run-seconds 600 \
-   --max-followup-targets 10
-
-# Restrict offensive phase to UTC windows (repeatable)
-python main.py \
-   --offensive-target https://app.example.com \
-   --allowed-time-window 08:00-12:00 \
-   --allowed-time-window 20:00-22:00
-
-# Dry-run offensive integration (build commands, do not execute)
-python main.py --offensive-target https://app.example.com --offensive-dry-run --live-log
-
-# Full-control mode (no dry-run/simulated offensive execution)
-python main.py \
-   --offensive-target https://app.example.com \
-   --offensive-mode manual \
-   --full-control
-
-# Direct ffuf wordlist override from CLI
-python main.py \
-   --offensive-target https://app.example.com \
-   --ffuf-wordlist data/wordlists/custom-api.txt
-
-# Force manual offensive execution mode (requires tools installed)
-python main.py \
-   --offensive-mode manual \
-   --offensive-target https://app.example.com \
-   --offensive-tools nmap,ffuf,nuclei
-
-# Enable extended recon toolchain (dry-run to inspect generated commands first)
-python main.py \
-   --offensive-target https://app.example.com \
-   --offensive-tools subfinder,amass,bbot,katana,httpx,secretfinder,linkfinder,gitleaks,aquatone,gowitness \
-   --offensive-dry-run \
-   --live-log
-
-# Per-tool customization: binary path and extra args
-python main.py \
-   --offensive-target https://app.example.com \
-   --offensive-tools katana,httpx \
-   --tool-bin katana=/opt/projectdiscovery/katana \
-   --tool-extra-args katana="-jc -kf" \
-   --tool-extra-args httpx="-follow-redirects"
-
-# Full command override with placeholders: {target}, {url}, {host}, {domain}, {wordlist}
-python main.py \
-   --offensive-target https://app.example.com \
-   --offensive-tools gowitness \
-   --tool-command gowitness="gowitness scan single -u {url} --write-db --screenshot-path data/shots"
-
-# Show built-in GitHub wordlist profiles
-python main.py --list-wordlists
-
-# Select a profile and allow auto-download to local cache
-python main.py \
-   --offensive-target https://app.example.com \
-   --wordlist-profile seclists_raft_medium \
-   --wordlist-auto-download
-
-# Bug bounty-safe run with explicit in-scope policy and tech hints
-python main.py \
-   --offensive-target https://api.example.com \
-   --bugbounty-mode \
-   --scope-file data/scope_policy.example.json \
-   --require-scope-match \
-   --target-tech api,graphql \
-   --request-header "X-Bounty-Scope: approved" \
-   --max-nmap-rate 30 \
-   --max-ffuf-threads 15 \
-   --max-nuclei-rate 60 \
-   --asset-aware-cves
+# Pipeline events as JSON lines on stderr
+python main.py --once --quiet --live-log 2> events.jsonl
 ```
 
-### Offensive Hub Configuration
+**CI gate.** `--fail-on-findings` makes any kill chain fail the job:
 
-`data/offensive_config.json` controls the offensive runtime. CLI flags override JSON values.
+```bash
+python main.py --once --quiet --fail-on-findings --network network.json --cves cves.json
+```
 
-Key fields:
-- `enabled`: Master toggle.
-- `mode`: `auto`, `manual`, `dry-run`, `disabled`.
-- `target`: Host/IP/CIDR/URL to scan.
-- `speed`: `stealth`, `balanced`, `aggressive`.
-- `intensity`: `low`, `medium`, `high`.
-- `tools`: Any subset of `nmap`, `ffuf`, `nuclei`, `subfinder`, `amass`, `bbot`, `katana`, `httpx`, `secretfinder`, `linkfinder`, `gitleaks`, `aquatone`, `gowitness`.
-- `ffuf_wordlist_profile`: Built-in profile key (e.g. `seclists_common`, `seclists_raft_medium`, `ffuf_parameters`).
-- `directory_injection`: Whether ffuf path findings become synthetic graph findings.
-- `wordlist_auto_download`: If true, selected profile is downloaded from GitHub when missing.
-- `wordlist_store_dir`: Local cache directory for downloaded wordlists.
-- `bugbounty_mode`: Safer defaults for scan rates and strict scoping workflows.
-- `scope_policy_file`: JSON path for allow/deny scope policy.
-- `require_scope_match`: Block offensive commands when target is out of scope.
-- `tech_hints`: Optional technology hints used by wordlist recommendation.
-- `request_headers`: Repeatable HTTP headers applied to ffuf/nuclei/katana/httpx (`Key: Value`).
-- `full_control`: Enables operator command review/edit hook before each offensive command executes.
-- `max_nmap_rate`: Optional hard cap for nmap `--max-rate`.
-- `max_ffuf_threads`: Optional hard cap for ffuf `-t` threads.
-- `max_nuclei_rate`: Optional hard cap for nuclei `-rl` rate.
-- `max_total_targets`: Optional cap for unique follow-up targets discovered during staged orchestration.
-- `max_total_commands`: Optional cap for total offensive commands executed per run.
-- `max_findings`: Optional cap for stored findings after deduplication.
-- `max_run_seconds`: Optional wall-clock cap for offensive stage scheduling.
-- `max_followup_targets`: Per-stage cap for follow-up target fan-out.
-- `allowed_time_windows`: Optional UTC execution windows (`HH:MM-HH:MM`).
-- `tool_dependencies`: Tool dependency graph used to stage command execution order.
-- `tool_command_templates`: String templates for core tool command generation (`nmap`, `ffuf`, `nuclei`).
-- `tool_binaries`: Optional per-tool executable overrides (JSON object, e.g. `{ "katana": "/opt/pd/katana" }`).
-- `tool_extra_args`: Optional per-tool argv appended to defaults (JSON object of arg arrays).
-- `tool_command_overrides`: Optional per-tool full command argv override with placeholders (`{target}`, `{url}`, `{host}`, `{domain}`, `{wordlist}`).
+| Exit code | Meaning |
+|---|---|
+| `0` | Analysis completed; no kill chains, or `--fail-on-findings` not set |
+| `1` | Runtime error: unreadable/invalid input, CVE feed sync failure |
+| `2` | Usage error: unknown or conflicting flags (argparse) |
+| `3` | Kill chains found and `--fail-on-findings` set |
 
-Dynamic CVE source selection:
-- Default mode remains local file-based (`--cves`).
-- Use `--cve-profile` for automatic latest-feed sync.
-- Profiles: `local`, `nvd_recent`, `cisa_kev`, `all_latest`, `ghsa_recent`, `all_plus`.
-- `--cve-cache-dir` controls local cached feed location.
-- `--cve-auto-download/--no-cve-auto-download` toggles network sync.
-- `--cve-max-items` limits how many CVEs are imported from dynamic profiles.
-- `--cve-sync-policy` controls refresh strategy: `always`, `if-stale`, `never`.
-- `--cve-sync-schedule` adds cadence checks: `off`, `daily`, `weekly`.
-- `--cve-stale-hours` sets freshness threshold for `if-stale`.
-- `--cve-osv-lookup-limit` caps OSV enrichment lookups when using extended profiles.
-- `--cve-source-priority` sets source precedence for merged profiles (`all_latest`, `all_plus`).
-- `--cve-disable-sources` removes selected sources from merged profiles.
-- Remote profile sync supports conditional requests (ETag/If-Modified-Since) to avoid re-downloading unchanged feeds.
+Exit code 3 is deliberately distinct from argparse's 2, so a typo in a CI flag cannot be mistaken for a finding.
 
-Asset-aware CVE filtering:
-- Use `--asset-aware-cves` to reduce CVE noise based on extracted host/service context.
-- `--asset-cve-min-score` sets the relevance threshold for inferred matches.
-- `--asset-cve-keep-top` preserves top-ranked CVEs as fallback.
+**Remote CVE feeds.** Instead of `--cves`, `--once` can sync a feed profile into a local cache and analyse that:
 
-Dashboard hook:
-- Use `--live-log` to print machine-readable runtime events (pipeline stages + offensive findings).
-- Use `--dashboard-enable` to expose local dashboard endpoints: `/health`, `/events`, `/metrics`, `/ws`.
-- Event payloads include tool, event type, message, confidence, and parsed metadata.
+```bash
+python main.py --list-cve-profiles
+python main.py --once --cve-profile cisa_kev
+python main.py --once --cve-profile all_plus --cve-max-items 3000 --cve-osv-lookup-limit 120
+python main.py --once --cve-profile all_plus --cve-source-priority ghsa_recent,cisa_kev,nvd_recent,osv_enriched
+python main.py --once --cve-profile all_plus --cve-disable-sources ghsa_recent,osv_enriched
+python main.py --once --cve-profile all_latest --cve-sync-policy if-stale --cve-stale-hours 12 --cve-sync-schedule daily
+python main.py --once --cve-profile cisa_kev --no-cve-auto-download   # cache only, no network
+```
 
-Terminal UX:
-- By default, interactive terminal runs show a Rich startup intro animation using the exact ASCII art from this README.
-- Use `--intro-speed` to control reveal speed.
-- Use `--no-intro` to disable animation (recommended for CI/log-only runs).
-- Use `--terminal-app` to launch a persistent menu-based terminal cockpit.
-- Running `python main.py` without arguments in an interactive terminal opens the menu mode by default.
-- Use `--no-terminal-app` for one-shot runs that should exit immediately after completion.
-- Use `--full-control` to block dry-run/disabled offensive modes and require a real offensive target.
+- Profiles: `local` (default, uses `--cves`), `nvd_recent`, `cisa_kev`, `all_latest`, `ghsa_recent`, `all_plus`.
+- `--cve-cache-dir` (default `data/cve_cache`), `--cve-max-items`, `--cve-sync-policy {always,if-stale,never}`, `--cve-sync-schedule {off,daily,weekly}`, `--cve-stale-hours`.
+- Syncs use conditional requests (ETag/If-Modified-Since).
+- Known limitation: `nvd_recent` points at NVD's legacy 1.1 JSON feed, which NVD has been retiring. Prefer `cisa_kev`/`ghsa_recent` until the NVD source moves to the 2.0 API.
 
-Deep customization:
-- In terminal app mode, `Main Menu -> [9] Advanced Tool Config` lets you persist per-tool `extra_args` for `nmap`, `ffuf`, and `nuclei`.
-- The same menu lets you set a custom ffuf wordlist path at runtime.
-- Advanced settings are written to `data/offensive_config.json` so they survive restarts.
-- `tool_command_templates` supports template-based command building for `nmap`, `ffuf`, and `nuclei` using placeholders such as `{target}`, `{url}`, `{wordlist}`, `{default_args}`, and `{extra_args}`.
-- When `full_control` is enabled, commands enter review mode before execution so the operator can accept, edit, or skip each command.
+One-shot flags (`--fail-on-findings`, `--quiet`, `--no-remediation`, `--top-patches`, `--live-log`, `--cve-*`, `--asset-*`) are rejected without `--once`. Offensive flags are rejected with it.
+
+### 2. API server (default)
+
+```bash
+python main.py --headless --offensive-disable                       # analysis only
+python main.py --headless --storage sqlite --db-path scans.db       # persistent scan history
+python main.py --headless --max-concurrent-scans 2
+python main.py --headless --scope-file data/scope_policy.json       # allow authorized live scans
+```
+
+The server needs `GORDIAN_API_KEY` (see [Current operating boundary](#current-operating-boundary)). Start scans from the Go TUI (`go run ./cmd/gordian` in `tui/`) or with `POST /api/v1/scan/start`. Interactive docs are at `http://127.0.0.1:8000/docs`.
+
+Server flags:
+- `--api-host` / `--api-port`: bind address (default `127.0.0.1:8000`).
+- `--storage {ram,sqlite}`, `--db-path`, `--max-concurrent-scans`.
+- `--network`, `--cves`: default datasets. Requests may only name other JSON files under `data/`.
+- `--out`: report root. Each scan writes to `<out>/<scan-id>/`.
+- `--headless` / `--no-intro` / `--intro-speed`: boot animation.
+- `--list-wordlists`: ffuf wordlist profiles that scan requests may select.
+
+### Offensive hub (server-owned)
+
+These flags set server-side limits. API clients can narrow them but never exceed them:
+
+- `--offensive-config` (default `data/offensive_config.json`), `--offensive-mode {auto,manual,dry-run,disabled}`, `--offensive-target`, `--offensive-speed`, `--offensive-intensity`.
+- `--offensive-dry-run` and `--offensive-disable` force dry-run or disabled mode for every scan.
+- `--scope-file`: allow/deny policy. Required for any live (non dry-run) scan.
+- `--max-nmap-rate`, `--max-ffuf-threads`, `--max-nuclei-rate`, `--max-total-targets`, `--max-total-commands`, `--max-findings`, `--max-run-seconds`: caps. The server also enforces hard ceilings of 40 / 20 / 80 / 40 / 100 / 2000 / 900 respectively.
+
+`data/offensive_config.json` holds the base config (`mode`, `target`, `speed`, `intensity`, `tools`, `ffuf_wordlist_profile`, `directory_injection`, `tool_dependencies`, rate caps, …). The API rejects a config that contains `tool_command_overrides` or `tool_extra_args`, and always uses the built-in command templates, `require_scope_match=true` and `full_control=false`. Executables are resolved on the server; clients cannot choose binaries, flags or paths. Setting `"bugbounty_mode": true` there makes every scan run in bug bounty mode (lower rates, passive recon, no nmap `vuln` scripts); clients can turn it on per scan but cannot turn a server-enabled mode off.
+
+Supported tools: `nmap`, `ffuf`, `nuclei`, `subfinder`, `amass`, `bbot`, `katana`, `httpx`, `secretfinder`, `linkfinder`, `gitleaks`, `aquatone`, `gowitness`.
 
 Wordlist recommendation behavior:
-- The hub automatically recommends a profile based on `target`, `speed`, `intensity`, and optional `tech_hints`.
+- The hub recommends a profile based on `target`, `speed`, `intensity` and technology hints from the graph.
 - If no explicit profile is selected, the top recommendation is used.
 - For API-like targets, parameter-focused lists are prioritized.
 - In bug bounty mode, recommendations favor lower-noise profiles before aggressive lists.
@@ -467,7 +333,7 @@ Trend report output:
 
 ### 🔴 Live Run with Offensive Integration
 
-When you add a `--target` and the Offensive Hub kicks in, the TUI live-event
+When an API scan request includes a target and the Offensive Hub kicks in, the TUI live-event
 stream shows the recon→exploit feeding loop in real time. Each `CHAIN` line
 is a `pipeline.tool_chain.spawned` event — a tool spawning another tool
 against a target it just discovered:
@@ -519,7 +385,7 @@ Segmentation is modeled at the `(host, port)` level. The attack path surfaced is
 
 ```text
 Gordian/
-├── main.py                    # CLI entry point
+├── main.py                    # Entry point: API server or --once analysis
 ├── data/                      # Fixtures
 │   ├── sample_network.json    # Bundled topology fixture
 │   ├── cve_feed.json          # CVE enrichment fixture (CVSS + EPSS + MITRE)

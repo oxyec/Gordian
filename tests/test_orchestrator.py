@@ -284,3 +284,46 @@ def test_pipeline_trend_report_compares_with_previous_run(fixture_dir: Path):
     tool_summary = trend.get("tool_results_summary", {})
     assert isinstance(tool_summary, dict)
     assert tool_summary.get("attempted", 0) >= 0
+
+
+def test_cpu_stages_do_not_block_event_loop(fixture_dir: Path, monkeypatch):
+    # time.sleep releases the GIL, so this proves the stage left the loop
+    # thread; it does not measure GIL contention from pure-Python work.
+    import time
+
+    import src.orchestrator as orchestrator
+
+    def slow_patches(*_args, **_kwargs):
+        time.sleep(0.3)
+        return []
+
+    monkeypatch.setattr(orchestrator, "suggest_patches", slow_patches)
+    etl = AttackGraphETL(
+        network_source=fixture_dir / "network.json",
+        cve_source=fixture_dir / "cves.json",
+        output_dir=fixture_dir / "reports",
+        quiet=True,
+    )
+
+    async def scenario() -> list[float]:
+        loop = asyncio.get_running_loop()
+        gaps: list[float] = []
+        done = asyncio.Event()
+
+        async def heartbeat() -> None:
+            last = loop.time()
+            while not done.is_set():
+                await asyncio.sleep(0.02)
+                now = loop.time()
+                gaps.append(now - last)
+                last = now
+
+        beat = asyncio.create_task(heartbeat())
+        await etl.run()
+        done.set()
+        await beat
+        return gaps
+
+    gaps = asyncio.run(scenario())
+    assert len(gaps) >= 5
+    assert max(gaps) < 0.2

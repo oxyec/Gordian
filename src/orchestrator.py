@@ -1,9 +1,15 @@
 """Pipeline wiring.
 
 Extract runs under asyncio.gather because topology and CVE feed are
-independent. Transform is CPU-bound pure Python; no reason to fake
-async there. Load runs under gather again so the two report sinks
-(JSON + Markdown) write in parallel.
+independent. Transform, pathfinding and remediation are CPU-bound pure
+Python; they run in worker threads (asyncio.to_thread) so an API event
+loop hosting this pipeline keeps serving REST/WebSocket traffic. Stages
+are awaited one after another, so the graph is never touched by two
+threads at once, and progress/events are always emitted from the loop
+thread between stages. A cancelled run stops at the next await; a stage
+already running in a worker thread finishes and its result is discarded.
+Load runs under gather again so the two report sinks (JSON + Markdown)
+write in parallel.
 """
 
 from __future__ import annotations
@@ -129,7 +135,8 @@ class AttackGraphETL:
         )
 
         if self.asset_aware_cves:
-            filtered_cve_db, stats = filter_cves_for_hosts(
+            filtered_cve_db, stats = await asyncio.to_thread(
+                filter_cves_for_hosts,
                 hosts,
                 cve_db,
                 enabled=True,
@@ -157,7 +164,7 @@ class AttackGraphETL:
             )
 
         _progress("transform", 35.0, "Building attack graph")
-        graph = build_graph(hosts, cve_db)
+        graph = await asyncio.to_thread(build_graph, hosts, cve_db)
         self._last_graph = graph
         _progress("transform", 45.0, f"Graph built: {len(graph.hosts)} nodes, {graph.edge_count()} edges")
         emit_event(
@@ -181,7 +188,7 @@ class AttackGraphETL:
             # Snapshot the kill chains BEFORE offensive runs so we can show
             # the operator which chains were already known vs. which were
             # opened up by live recon/exploit findings.
-            baseline_chains = find_all_kill_chains(graph)
+            baseline_chains = await asyncio.to_thread(find_all_kill_chains, graph)
             baseline_targets = {chain.target_host_id for chain in baseline_chains}
             emit_event(
                 live_log_hook,
@@ -212,7 +219,7 @@ class AttackGraphETL:
         self._last_offensive = offensive_summary
 
         _progress("dijkstra", 70.0, "Computing kill-chain shortest paths")
-        chains = find_all_kill_chains(graph)
+        chains = await asyncio.to_thread(find_all_kill_chains, graph)
 
         if self.offensive_config is not None and self.offensive_config.enabled:
             post_targets = {chain.target_host_id for chain in chains}
@@ -257,7 +264,9 @@ class AttackGraphETL:
         patches = []
         if self.run_remediation:
             _progress("remediation", 85.0, "Simulating patch recommendations")
-            patches = suggest_patches(graph, chains, cve_db, top_n=self.top_patches)
+            patches = await asyncio.to_thread(
+                suggest_patches, graph, chains, cve_db, top_n=self.top_patches
+            )
         emit_event(
             live_log_hook,
             build_event(
@@ -293,7 +302,7 @@ class AttackGraphETL:
         )
 
         if not self.quiet:
-            render_console(chains, graph, cve_db, patches, offensive_summary)
+            await asyncio.to_thread(render_console, chains, graph, cve_db, patches, offensive_summary)
 
         elapsed = round(time.perf_counter() - t0, 3)
         log.info("pipeline done in %.3fs", elapsed)

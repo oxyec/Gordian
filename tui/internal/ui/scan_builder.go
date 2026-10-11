@@ -83,36 +83,6 @@ func (b *scanBuilder) withTools(cfg state.ScanConfig, tools []state.Tool) *scanB
 	return b
 }
 
-func (b *scanBuilder) withToolOverrides(cfg state.ScanConfig) *scanBuilder {
-	if b.err != nil {
-		return b
-	}
-
-	bins := buildToolBinMap(cfg)
-	if len(bins) > 0 {
-		b.req.ToolBin = bins
-	}
-
-	extra, err := buildToolArgMap(cfg, false)
-	if err != nil {
-		b.err = err
-		return b
-	}
-	if len(extra) > 0 {
-		b.req.ToolExtraArgs = extra
-	}
-
-	command, err := buildToolArgMap(cfg, true)
-	if err != nil {
-		b.err = err
-		return b
-	}
-	if len(command) > 0 {
-		b.req.ToolCommand = command
-	}
-	return b
-}
-
 func (b *scanBuilder) build() (api.ScanStartRequest, error) {
 	if b.err != nil {
 		return api.ScanStartRequest{}, b.err

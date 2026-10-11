@@ -326,7 +326,6 @@ class ScanManager:
 
             _update_progress("running", 25.0, "Pipeline executing")
 
-            # Network stages are async; CPU graph stages still execute synchronously.
             result = await etl.run(
                 live_log_hook=_live_hook,
                 progress_callback=_update_progress,
@@ -455,6 +454,9 @@ class ScanManager:
         )
         if base_offensive.mode in {OffensiveMode.DRY_RUN, OffensiveMode.DISABLED}:
             config = replace(config, mode=base_offensive.mode)
+        # Like the caps below, a server-enabled bug bounty mode is a floor.
+        if base_offensive.bugbounty_mode:
+            config = replace(config, bugbounty_mode=True)
         # Server limits are ceilings, even if the client requests more.
         caps = {"max_nmap_rate": 40, "max_ffuf_threads": 20, "max_nuclei_rate": 80,
                 "max_total_targets": 40, "max_total_commands": 100,

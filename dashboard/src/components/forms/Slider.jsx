@@ -30,7 +30,7 @@ export default function Slider({
             background: `linear-gradient(to right, rgba(34,211,238,0.4) ${pct}%, #0f172a ${pct}%)`,
           }}
         />
-        <span className="min-w-[4.5rem] border border-slate-800 bg-slate-950 px-2 py-1 text-center text-[11px] tabular-nums text-cyan-300">
+        <span className="min-w-18 border border-slate-800 bg-slate-950 px-2 py-1 text-center text-[11px] tabular-nums text-cyan-300">
           {value}
           {suffix && <span className="ml-1 text-slate-500">{suffix}</span>}
         </span>

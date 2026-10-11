@@ -25,7 +25,7 @@ export default function TextInput({
         placeholder={placeholder}
         spellCheck={false}
         autoComplete="off"
-        className={`w-full bg-transparent px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none ${
+        className={`w-full bg-transparent px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-hidden ${
           mono ? "font-mono" : ""
         }`}
       />
