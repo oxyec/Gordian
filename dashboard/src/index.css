@@ -1,6 +1,355 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --font-mono:
+    JetBrains Mono, Fira Code, IBM Plex Mono, Menlo, ui-monospace, monospace;
+
+  --shadow-neon:
+    0 0 0 1px rgba(34, 211, 238, 0.45), 0 0 24px -6px rgba(34, 211, 238, 0.55);
+  --shadow-kill:
+    0 0 0 1px rgba(239, 68, 68, 0.5), 0 0 24px -6px rgba(239, 68, 68, 0.6);
+  --shadow-warn:
+    0 0 0 1px rgba(251, 146, 60, 0.45), 0 0 24px -6px rgba(251, 146, 60, 0.55);
+
+  --animate-flicker: flicker 4s linear infinite;
+  --animate-scanline: scanline 8s linear infinite;
+  --animate-pulse-dot: pulseDot 1.4s ease-in-out infinite;
+  --animate-boot: boot 220ms ease-out both;
+  --animate-dash: dash 3s linear infinite;
+  --animate-blip: blip 1.8s ease-in-out infinite;
+
+  @keyframes flicker {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    45% {
+      opacity: 0.85;
+    }
+    50% {
+      opacity: 0.55;
+    }
+    55% {
+      opacity: 0.95;
+    }
+  }
+  @keyframes scanline {
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes pulseDot {
+    0%,
+    100% {
+      opacity: 1;
+      box-shadow: 0 0 8px currentColor;
+    }
+    50% {
+      opacity: 0.35;
+      box-shadow: 0 0 0px currentColor;
+    }
+  }
+  @keyframes boot {
+    0% {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes dash {
+    0% {
+      stroke-dashoffset: 100;
+    }
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes blip {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.6);
+      opacity: 0.4;
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility panel {
+  @apply relative border border-slate-800 bg-slate-950/80 backdrop-blur-xs;
+  border-radius: var(--radius);
+}
+
+@utility panel-header {
+  @apply flex items-center justify-between border-b border-slate-800 bg-slate-900/70 px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-slate-500;
+}
+
+@utility panel-title {
+  @apply flex items-center gap-2;
+  color: var(--accent);
+}
+
+@utility chip {
+  @apply inline-flex items-center gap-1.5 border border-slate-800 bg-slate-900/70 px-2 py-0.5 text-[10px] uppercase tracking-widest text-slate-500;
+  border-radius: var(--radius);
+}
+
+@utility chip-live {
+  @apply border-emerald-400/40 text-emerald-400;
+}
+
+@utility chip-warn {
+  @apply border-orange-400/40 text-orange-400;
+}
+
+@utility chip-crit {
+  @apply border-red-500/50  text-red-500;
+}
+
+@utility chip-accent {
+  border-color: rgba(var(--accent-rgb) / 0.4);
+  color: var(--accent);
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 border px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed;
+  border-radius: var(--radius);
+}
+
+@utility btn-primary {
+  border-color: rgba(var(--accent-rgb) / 0.6);
+  background-color: rgba(var(--accent-rgb) / 0.1);
+  color: rgb(var(--accent-rgb));
+  &:not(:disabled):hover {
+    background-color: var(--accent);
+    color: #020617;
+    box-shadow:
+      0 0 0 1px rgba(var(--accent-rgb) / 0.45),
+      0 0 24px -6px var(--accent-glow);
+  }
+}
+
+@utility btn-ghost {
+  @apply btn border-slate-800 bg-transparent text-slate-500;
+  &:hover {
+    border-color: rgba(var(--accent-rgb) / 0.5);
+    color: var(--accent);
+  }
+}
+
+@utility btn-danger {
+  @apply btn border-red-500/60 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-slate-950;
+  &:hover {
+    box-shadow:
+      0 0 0 1px rgba(239, 68, 68, 0.5),
+      0 0 24px -6px rgba(239, 68, 68, 0.6);
+  }
+}
+
+@utility input {
+  @apply w-full border border-slate-800 bg-slate-950/70 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-hidden;
+  border-radius: var(--radius);
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+}
+
+@utility grid-bg {
+  background-image:
+    linear-gradient(rgba(var(--accent-rgb) / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--accent-rgb) / 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+@utility scanlines {
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.025) 0px,
+      rgba(255, 255, 255, 0.025) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode: overlay;
+    z-index: 1;
+  }
+  html[data-scanlines='off'] &::before {
+    display: none;
+  }
+}
+
+@utility crt {
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 60%;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      rgba(var(--accent-rgb) / 0.08),
+      transparent
+    );
+    animation: scanline 8s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  html[data-crt='off'] &::after {
+    display: none;
+  }
+}
+
+@utility live-dot {
+  @apply inline-block h-2 w-2 rounded-full bg-emerald-400 align-middle;
+  box-shadow: 0 0 8px #34d399;
+  animation: pulseDot 1.4s ease-in-out infinite;
+
+  /* When status-chip flash is OFF, kill the live-dot pulse globally. */
+  html[data-statusflash='off'] & {
+    animation: none !important;
+  }
+}
+
+@utility accent-dot {
+  @apply inline-block h-2 w-2 rounded-full align-middle;
+  background: var(--accent);
+  box-shadow: 0 0 calc(8px * var(--glow-strength)) var(--accent);
+
+  html[data-statusflash='off'] & {
+    animation: none !important;
+  }
+}
+
+@utility menu-item {
+  /* Hard-edged "switch the ux around" button used in panel head menus */
+  @apply flex w-full items-center justify-between gap-3 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-slate-300 transition-colors hover:bg-slate-900/80;
+  &[aria-current='true'] {
+    color: var(--accent);
+    background-color: rgba(var(--accent-rgb) / 0.08);
+  }
+  & kbd {
+    @apply border border-slate-800 bg-slate-950 px-1 py-0.5 text-[9px] tracking-widest text-slate-500;
+  }
+}
+
+@utility text-accent {
+  /* Accent-coloured utilities that swap automatically with the chosen palette.
+     Use these in panels instead of hard-coded `text-cyan-300` etc. */
+  color: var(--accent);
+}
+
+@utility text-accent-soft {
+  color: rgb(var(--accent-rgb) / 0.8);
+}
+
+@utility text-accent-muted {
+  color: rgb(var(--accent-rgb) / 0.55);
+}
+
+@utility bg-accent {
+  background-color: var(--accent);
+  color: #020617;
+}
+
+@utility bg-accent-faint {
+  background-color: rgb(var(--accent-rgb) / 0.1);
+}
+
+@utility bg-accent-mute {
+  background-color: rgb(var(--accent-rgb) / 0.05);
+}
+
+@utility border-accent {
+  border-color: var(--accent);
+}
+
+@utility border-accent-soft {
+  border-color: rgb(var(--accent-rgb) / 0.45);
+}
+
+@utility border-accent-mute {
+  border-color: rgb(var(--accent-rgb) / 0.2);
+}
+
+@utility shadow-accent {
+  box-shadow:
+    0 0 calc(8px * var(--glow-strength)) var(--accent-glow),
+    0 0 0 1px rgb(var(--accent-rgb) / 0.18);
+}
+
+@utility ring-accent {
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+@utility fill-accent {
+  fill: var(--accent);
+}
+
+@utility stroke-accent {
+  stroke: var(--accent);
+}
+
+@utility corner-mark {
+  /* Decorative little "tactical" corner marker for accent containers */
+  &::before {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-color: var(--accent);
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-color: var(--accent);
+  }
+  &::before {
+    top: -1px;
+    left: -1px;
+    border-top: 1px solid;
+    border-left: 1px solid;
+  }
+  &::after {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 1px solid;
+    border-right: 1px solid;
+  }
+}
 
 @layer base {
   :root {
@@ -87,185 +436,5 @@
   ::selection {
     background: rgba(var(--accent-rgb) / 0.3);
     color: white;
-  }
-}
-
-@layer components {
-  .panel {
-    @apply relative border border-slate-800 bg-slate-950/80 backdrop-blur-sm;
-    border-radius: var(--radius);
-  }
-
-  .panel-header {
-    @apply flex items-center justify-between border-b border-slate-800 bg-slate-900/70 px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-slate-500;
-  }
-
-  .panel-title {
-    @apply flex items-center gap-2;
-    color: var(--accent);
-  }
-
-  .chip {
-    @apply inline-flex items-center gap-1.5 border border-slate-800 bg-slate-900/70 px-2 py-0.5 text-[10px] uppercase tracking-widest text-slate-500;
-    border-radius: var(--radius);
-  }
-  .chip-live { @apply border-emerald-400/40 text-emerald-400; }
-  .chip-warn { @apply border-orange-400/40 text-orange-400; }
-  .chip-crit { @apply border-red-500/50  text-red-500; }
-
-  .chip-accent {
-    border-color: rgba(var(--accent-rgb) / 0.4);
-    color: var(--accent);
-  }
-
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 border px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed;
-    border-radius: var(--radius);
-  }
-
-  .btn-primary {
-    border-color: rgba(var(--accent-rgb) / 0.6);
-    background-color: rgba(var(--accent-rgb) / 0.1);
-    color: rgb(var(--accent-rgb));
-  }
-  .btn-primary:not(:disabled):hover {
-    background-color: var(--accent);
-    color: #020617;
-    box-shadow: 0 0 0 1px rgba(var(--accent-rgb) / 0.45),
-      0 0 24px -6px var(--accent-glow);
-  }
-
-  .btn-ghost {
-    @apply btn border-slate-800 bg-transparent text-slate-500;
-  }
-  .btn-ghost:hover {
-    border-color: rgba(var(--accent-rgb) / 0.5);
-    color: var(--accent);
-  }
-
-  .btn-danger {
-    @apply btn border-red-500/60 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-slate-950;
-  }
-  .btn-danger:hover {
-    box-shadow: 0 0 0 1px rgba(239,68,68,0.5), 0 0 24px -6px rgba(239,68,68,0.6);
-  }
-
-  .input {
-    @apply w-full border border-slate-800 bg-slate-950/70 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none;
-    border-radius: var(--radius);
-  }
-  .input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 1px var(--accent);
-  }
-
-  .grid-bg {
-    background-image:
-      linear-gradient(rgba(var(--accent-rgb) / 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(var(--accent-rgb) / 0.05) 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
-
-  .scanlines::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-      0deg,
-      rgba(255, 255, 255, 0.025) 0px,
-      rgba(255, 255, 255, 0.025) 1px,
-      transparent 1px,
-      transparent 3px
-    );
-    mix-blend-mode: overlay;
-    z-index: 1;
-  }
-  html[data-scanlines="off"] .scanlines::before { display: none; }
-
-  .crt::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 60%;
-    background: linear-gradient(to bottom, transparent, rgba(var(--accent-rgb) / 0.08), transparent);
-    animation: scanline 8s linear infinite;
-    pointer-events: none;
-    z-index: 0;
-  }
-  html[data-crt="off"] .crt::after { display: none; }
-
-  .live-dot {
-    @apply inline-block h-2 w-2 rounded-full bg-emerald-400 align-middle;
-    box-shadow: 0 0 8px #34d399;
-    animation: pulseDot 1.4s ease-in-out infinite;
-  }
-
-  .accent-dot {
-    @apply inline-block h-2 w-2 rounded-full align-middle;
-    background: var(--accent);
-    box-shadow: 0 0 calc(8px * var(--glow-strength)) var(--accent);
-  }
-
-  /* Hard-edged "switch the ux around" button used in panel head menus */
-  .menu-item {
-    @apply flex w-full items-center justify-between gap-3 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-slate-300 transition-colors hover:bg-slate-900/80;
-  }
-  .menu-item[aria-current="true"] {
-    color: var(--accent);
-    background-color: rgba(var(--accent-rgb) / 0.08);
-  }
-  .menu-item kbd {
-    @apply border border-slate-800 bg-slate-950 px-1 py-0.5 text-[9px] tracking-widest text-slate-500;
-  }
-
-  /* Accent-coloured utilities that swap automatically with the chosen palette.
-     Use these in panels instead of hard-coded `text-cyan-300` etc. */
-  .text-accent       { color: var(--accent); }
-  .text-accent-soft  { color: rgb(var(--accent-rgb) / 0.8); }
-  .text-accent-muted { color: rgb(var(--accent-rgb) / 0.55); }
-  .bg-accent         { background-color: var(--accent); color: #020617; }
-  .bg-accent-faint   { background-color: rgb(var(--accent-rgb) / 0.10); }
-  .bg-accent-mute    { background-color: rgb(var(--accent-rgb) / 0.05); }
-  .border-accent     { border-color: var(--accent); }
-  .border-accent-soft{ border-color: rgb(var(--accent-rgb) / 0.45); }
-  .border-accent-mute{ border-color: rgb(var(--accent-rgb) / 0.20); }
-  .shadow-accent     {
-    box-shadow: 0 0 calc(8px * var(--glow-strength)) var(--accent-glow),
-                0 0 0 1px rgb(var(--accent-rgb) / 0.18);
-  }
-  .ring-accent       { box-shadow: 0 0 0 1px var(--accent); }
-  .fill-accent       { fill: var(--accent); }
-  .stroke-accent     { stroke: var(--accent); }
-
-  .hover\:text-accent:hover         { color: var(--accent); }
-  .hover\:border-accent:hover       { border-color: var(--accent); }
-  .hover\:bg-accent-faint:hover     { background-color: rgb(var(--accent-rgb) / 0.10); }
-
-  /* When status-chip flash is OFF, kill the live-dot pulse globally. */
-  html[data-statusflash="off"] .live-dot,
-  html[data-statusflash="off"] .accent-dot {
-    animation: none !important;
-  }
-
-  /* Decorative little "tactical" corner marker for accent containers */
-  .corner-mark::before,
-  .corner-mark::after {
-    content: "";
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    border-color: var(--accent);
-  }
-  .corner-mark::before {
-    top: -1px; left: -1px;
-    border-top: 1px solid;
-    border-left: 1px solid;
-  }
-  .corner-mark::after {
-    bottom: -1px; right: -1px;
-    border-bottom: 1px solid;
-    border-right: 1px solid;
   }
 }

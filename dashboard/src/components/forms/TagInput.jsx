@@ -67,7 +67,7 @@ export default function TagInput({
           placeholder={value.length === 0 ? placeholder : ""}
           spellCheck={false}
           autoComplete="off"
-          className="min-w-[8ch] flex-1 bg-transparent px-1 py-0.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none"
+          className="min-w-[8ch] flex-1 bg-transparent px-1 py-0.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-hidden"
         />
       </div>
       {suggestions.length > 0 && (

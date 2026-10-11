@@ -49,7 +49,7 @@ export default function NumberInput({
         max={max}
         step={step}
         placeholder={placeholder}
-        className="w-full bg-transparent px-2 py-1.5 text-sm text-slate-200 tabular-nums placeholder:text-slate-600 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        className="w-full bg-transparent px-2 py-1.5 text-sm text-slate-200 tabular-nums placeholder:text-slate-600 focus:outline-hidden [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
       {suffix && (
         <span className="flex items-center border-l border-slate-800 px-2 text-[10px] uppercase tracking-widest text-slate-500">

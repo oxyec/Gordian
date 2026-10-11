@@ -140,7 +140,7 @@ export default function LiveEventStream({ events, status, onClear }) {
                   {s.tag}
                 </span>
                 <span
-                  className={`break-words ${LEVEL_STYLES[e.level] ?? "text-slate-300"}`}
+                  className={`wrap-break-word ${LEVEL_STYLES[e.level] ?? "text-slate-300"}`}
                 >
                   {e.msg}
                 </span>
