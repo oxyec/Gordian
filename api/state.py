@@ -326,7 +326,6 @@ class ScanManager:
 
             _update_progress("running", 25.0, "Pipeline executing")
 
-            # Network stages are async; CPU graph stages still execute synchronously.
             result = await etl.run(
                 live_log_hook=_live_hook,
                 progress_callback=_update_progress,
