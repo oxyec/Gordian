@@ -281,7 +281,7 @@ These flags set server-side limits. API clients can narrow them but never exceed
 - `--scope-file`: allow/deny policy. Required for any live (non dry-run) scan.
 - `--max-nmap-rate`, `--max-ffuf-threads`, `--max-nuclei-rate`, `--max-total-targets`, `--max-total-commands`, `--max-findings`, `--max-run-seconds`: caps. The server also enforces hard ceilings of 40 / 20 / 80 / 40 / 100 / 2000 / 900 respectively.
 
-`data/offensive_config.json` holds the base config (`mode`, `target`, `speed`, `intensity`, `tools`, `ffuf_wordlist_profile`, `directory_injection`, `tool_dependencies`, rate caps, …). The API rejects a config that contains `tool_command_overrides` or `tool_extra_args`, and always uses the built-in command templates, `require_scope_match=true` and `full_control=false`. Executables are resolved on the server; clients cannot choose binaries, flags or paths.
+`data/offensive_config.json` holds the base config (`mode`, `target`, `speed`, `intensity`, `tools`, `ffuf_wordlist_profile`, `directory_injection`, `tool_dependencies`, rate caps, …). The API rejects a config that contains `tool_command_overrides` or `tool_extra_args`, and always uses the built-in command templates, `require_scope_match=true` and `full_control=false`. Executables are resolved on the server; clients cannot choose binaries, flags or paths. Setting `"bugbounty_mode": true` there makes every scan run in bug bounty mode (lower rates, passive recon, no nmap `vuln` scripts); clients can turn it on per scan but cannot turn a server-enabled mode off.
 
 Supported tools: `nmap`, `ffuf`, `nuclei`, `subfinder`, `amass`, `bbot`, `katana`, `httpx`, `secretfinder`, `linkfinder`, `gitleaks`, `aquatone`, `gowitness`.
 
